@@ -21,7 +21,7 @@ export const DIRECT_API_ENDPOINTS = {
     ROCKETS: 'https://api.spacexdata.com/v4/rockets'
   },
   ISS: {
-    POSITION: 'http://api.open-notify.org/iss-now.json',
+    POSITION: 'https://api.wheretheiss.at/v1/satellites/25544',
     ASTRONAUTS: 'http://api.open-notify.org/astros.json'
   }
 };

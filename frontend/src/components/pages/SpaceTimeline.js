@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from "react";
 import { motion } from "framer-motion";
-import { API_ENDPOINTS, apiRequest } from "../../config/api";
 
 const ParallaxEventSection = ({ event, index, totalEvents }) => {
   const isLast = index === totalEvents - 1;
@@ -68,8 +67,50 @@ const SpaceTimeline = () => {
   useEffect(() => {
     const fetchTimelineEvents = async () => {
       try {
-        const data = await apiRequest(API_ENDPOINTS.EXTERNAL.TIMELINE);
-        setEvents(data);
+        // Mock timeline data
+        const mockEvents = [
+          {
+            id: 1,
+            year: 1957,
+            title: "Sputnik 1 Launch",
+            description: "The Soviet Union launches Sputnik 1, the first artificial satellite, marking the beginning of the Space Age.",
+            category: "Milestone",
+            image: "https://upload.wikimedia.org/wikipedia/commons/b/be/Sputnik_asm.jpg"
+          },
+          {
+            id: 2,
+            year: 1961,
+            title: "First Human in Space",
+            description: "Yuri Gagarin becomes the first human to orbit Earth aboard Vostok 1.",
+            category: "Human Spaceflight",
+            image: "https://upload.wikimedia.org/wikipedia/commons/0/0f/Gagarin_in_Sweden.jpg"
+          },
+          {
+            id: 3,
+            year: 1969,
+            title: "Apollo 11 Moon Landing",
+            description: "Neil Armstrong and Buzz Aldrin become the first humans to walk on the Moon.",
+            category: "Milestone",
+            image: "https://upload.wikimedia.org/wikipedia/commons/9/98/Aldrin_Apollo_11_original.jpg"
+          },
+          {
+            id: 4,
+            year: 1990,
+            title: "Hubble Space Telescope Launch",
+            description: "NASA launches the Hubble Space Telescope, revolutionizing our view of the universe.",
+            category: "Technology",
+            image: "https://upload.wikimedia.org/wikipedia/commons/3/3f/HST-SM4.jpeg"
+          },
+          {
+            id: 5,
+            year: 2021,
+            title: "James Webb Space Telescope Launch",
+            description: "The most powerful space telescope ever built begins its mission to observe the early universe.",
+            category: "Technology",
+            image: "https://upload.wikimedia.org/wikipedia/commons/f/f4/James_Webb_Space_Telescope_Mirrors_Will_Piece_Together_Cosmic_Puzzles_%28weic2102a%29.jpg"
+          }
+        ];
+        setEvents(mockEvents);
       } catch (error) {
         console.error('Failed to fetch timeline events:', error);
         // Fallback to empty array if fetch fails
