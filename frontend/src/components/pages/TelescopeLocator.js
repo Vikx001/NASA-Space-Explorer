@@ -2,7 +2,6 @@ import React, { useState, useEffect, useRef } from "react";
 import { motion } from "framer-motion";
 import Globe from "react-globe.gl";
 import { FaBinoculars, FaExpand, FaCompress, FaGlobe, FaMapMarkedAlt, FaSearch } from "react-icons/fa";
-import { API_ENDPOINTS, apiRequest, buildQueryString } from "../../config/api";
 
 const TelescopeLocator = () => {
   const globeRef = useRef();
@@ -20,9 +19,38 @@ const TelescopeLocator = () => {
   useEffect(() => {
     const fetchObservatories = async () => {
       try {
-        const data = await apiRequest(API_ENDPOINTS.EXTERNAL.OBSERVATORIES);
-        setObservatories(data);
-        setFilteredObservatories(data);
+        // Mock observatory data
+        const mockObservatories = [
+          {
+            id: 1,
+            name: "Hubble Space Telescope",
+            lat: 0,
+            lng: 0,
+            altitude: 547000,
+            type: "Space Telescope",
+            description: "NASA's flagship space telescope in low Earth orbit"
+          },
+          {
+            id: 2,
+            name: "Mauna Kea Observatory",
+            lat: 19.8207,
+            lng: -155.4681,
+            altitude: 4207,
+            type: "Ground Observatory",
+            description: "World-class astronomical observatory in Hawaii"
+          },
+          {
+            id: 3,
+            name: "Atacama Large Millimeter Array",
+            lat: -24.0627,
+            lng: -67.7551,
+            altitude: 5058,
+            type: "Radio Telescope",
+            description: "Large radio telescope array in Chile"
+          }
+        ];
+        setObservatories(mockObservatories);
+        setFilteredObservatories(mockObservatories);
       } catch (error) {
         console.error('Failed to fetch observatories:', error);
         setObservatories([]);
@@ -81,9 +109,10 @@ const TelescopeLocator = () => {
 
   const reverseGeocode = async (lat, lng) => {
     try {
-      const queryString = buildQueryString({ lat, lon: lng });
-      const data = await apiRequest(`${API_ENDPOINTS.ISS.LOCATION}?${queryString}`);
-      return data?.display_name || "Unknown location";
+      // Simple coordinate display instead of reverse geocoding
+      const latDir = lat >= 0 ? 'N' : 'S';
+      const lngDir = lng >= 0 ? 'E' : 'W';
+      return `${Math.abs(lat).toFixed(2)}°${latDir}, ${Math.abs(lng).toFixed(2)}°${lngDir}`;
     } catch {
       return "Failed to retrieve place name";
     }

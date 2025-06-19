@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { FaGlobeAmericas } from "react-icons/fa";
-import { API_ENDPOINTS, apiRequest } from "../../config/api";
 
 const SolarSystemExplorer = () => {
   const [iframeLoaded, setIframeLoaded] = useState(false);
@@ -9,15 +8,16 @@ const SolarSystemExplorer = () => {
   const [externalLinks, setExternalLinks] = useState({});
 
   useEffect(() => {
-    const fetchLinks = async () => {
-      try {
-        const data = await apiRequest(API_ENDPOINTS.EXTERNAL.LINKS);
-        setExternalLinks(data);
-      } catch (error) {
-        console.error('Failed to fetch external links:', error);
-      }
+    const initializeLinks = () => {
+      // Set default external links
+      const defaultLinks = {
+        nasa_eyes: 'https://eyes.nasa.gov/apps/solar-system/',
+        planetary_society: 'https://www.planetary.org/explore/space-topics/solar-system',
+        nasa_solar_system: 'https://solarsystem.nasa.gov/'
+      };
+      setExternalLinks(defaultLinks);
     };
-    fetchLinks();
+    initializeLinks();
   }, []);
 
   return (

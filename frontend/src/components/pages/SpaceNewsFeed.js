@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { API_ENDPOINTS, apiRequest, buildQueryString } from "../../config/api";
 
 const SpaceNewsFeed = () => {
   const [articles, setArticles] = useState([]);
@@ -10,8 +9,9 @@ const SpaceNewsFeed = () => {
   useEffect(() => {
     const fetchNews = async () => {
       try {
-        const queryString = buildQueryString({ limit: 6 });
-        const data = await apiRequest(`${API_ENDPOINTS.SPACENEWS.ARTICLES}?${queryString}`);
+        // Use SpaceNews API directly
+        const response = await fetch('https://api.spaceflightnewsapi.net/v4/articles/?limit=6');
+        const data = await response.json();
         setArticles(data.results);
       } catch (error) {
         console.error("Failed to fetch space news:", error);

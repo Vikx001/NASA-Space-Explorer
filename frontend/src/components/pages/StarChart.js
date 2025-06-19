@@ -1,5 +1,4 @@
 import React, { useState, useEffect, useRef } from "react";
-import { API_ENDPOINTS, apiRequest } from "../../config/api";
 
 const StarChart = () => {
   const chartRef = useRef(null);
@@ -7,15 +6,16 @@ const StarChart = () => {
   const [externalLinks, setExternalLinks] = useState({});
 
   useEffect(() => {
-    const fetchLinks = async () => {
-      try {
-        const data = await apiRequest(API_ENDPOINTS.EXTERNAL.LINKS);
-        setExternalLinks(data);
-      } catch (error) {
-        console.error('Failed to fetch external links:', error);
-      }
+    const initializeLinks = () => {
+      // Set default external links
+      const defaultLinks = {
+        star_map: 'https://stellarium-web.org/',
+        constellation_guide: 'https://www.constellation-guide.com/',
+        astronomy_tools: 'https://www.timeanddate.com/astronomy/'
+      };
+      setExternalLinks(defaultLinks);
     };
-    fetchLinks();
+    initializeLinks();
   }, []);
 
   useEffect(() => {
