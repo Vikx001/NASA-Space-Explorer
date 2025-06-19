@@ -3,8 +3,8 @@ const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:5001/api
 export const API_ENDPOINTS = {
   NASA: {
     APOD: `${API_BASE_URL}/nasa/apod`,
-    MARS_PHOTOS: (rover) => `${API_BASE_URL}/nasa/mars-photos/${rover}`,
-    NEO_FEED: `${API_BASE_URL}/nasa/neo/feed`,
+    MARS_PHOTOS: `${API_BASE_URL}/nasa/mars-photos`,
+    NEO_FEED: `${API_BASE_URL}/nasa/neo-feed`,
     NEO_LOOKUP: (id) => `${API_BASE_URL}/nasa/neo/${id}`,
     NEO_IMAGE: (name) => `${API_BASE_URL}/nasa/neo/image/${encodeURIComponent(name)}`,
     EPIC: (collection) => `${API_BASE_URL}/nasa/epic/${collection}`,
@@ -14,10 +14,10 @@ export const API_ENDPOINTS = {
 
   SPACEX: {
     LAUNCHES: `${API_BASE_URL}/spacex/launches`,
-    LAUNCHES_UPCOMING: `${API_BASE_URL}/spacex/launches/upcoming`,
-    LAUNCHES_PAST: `${API_BASE_URL}/spacex/launches/past`,
-    LAUNCHES_LATEST: `${API_BASE_URL}/spacex/launches/latest`,
-    LAUNCHES_NEXT: `${API_BASE_URL}/spacex/launches/next`,
+    LAUNCHES_UPCOMING: `${API_BASE_URL}/spacex/launches?type=upcoming`,
+    LAUNCHES_PAST: `${API_BASE_URL}/spacex/launches?type=past`,
+    LAUNCHES_LATEST: `${API_BASE_URL}/spacex/launches?type=latest`,
+    LAUNCHES_NEXT: `${API_BASE_URL}/spacex/launches?type=next`,
     LAUNCH_BY_ID: (id) => `${API_BASE_URL}/spacex/launches/${id}`,
     ROCKETS: `${API_BASE_URL}/spacex/rockets`,
     ROCKET_BY_ID: (id) => `${API_BASE_URL}/spacex/rockets/${id}`,
