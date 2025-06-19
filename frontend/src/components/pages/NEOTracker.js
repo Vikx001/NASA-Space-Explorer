@@ -24,7 +24,13 @@ const NEOTracker = () => {
         const imagePromises = neos.map(async (neo) => {
           try {
             setImageLoadingStates(prev => ({ ...prev, [neo.id]: true }));
-            const imageData = await apiRequest(API_ENDPOINTS.NASA.NEO_IMAGE(neo.name));
+            // Use default image since we don't have the image endpoint
+        const imageData = {
+          url: 'https://upload.wikimedia.org/wikipedia/commons/5/5e/433eros.jpg',
+          title: neo.name,
+          description: 'Representative asteroid image',
+          source: 'NASA/Johns Hopkins APL (Representative)'
+        };
             setAsteroidImages(prev => ({ ...prev, [neo.id]: imageData }));
             setImageLoadingStates(prev => ({ ...prev, [neo.id]: false }));
           } catch (error) {
