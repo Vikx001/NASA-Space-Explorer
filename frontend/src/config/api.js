@@ -1,4 +1,30 @@
-const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:5001/api';
+const API_BASE_URL = process.env.REACT_APP_API_URL || '/api';
+const NASA_API_KEY = 'uGD2FnbivVtg0PN49UuX0FcK0XtfvB6Mz1wabstp';
+const USE_DIRECT_APIS = true; // Use direct API calls for deployment
+
+// Direct API endpoints for production deployment
+export const DIRECT_API_ENDPOINTS = {
+  NASA: {
+    APOD: `https://api.nasa.gov/planetary/apod?api_key=${NASA_API_KEY}`,
+    MARS_PHOTOS: (rover, sol = 1000) => `https://api.nasa.gov/mars-photos/api/v1/rovers/${rover}/photos?sol=${sol}&api_key=${NASA_API_KEY}`,
+    NEO_FEED: `https://api.nasa.gov/neo/rest/v1/feed?api_key=${NASA_API_KEY}`,
+    NEO_LOOKUP: (id) => `https://api.nasa.gov/neo/rest/v1/neo/${id}?api_key=${NASA_API_KEY}`,
+    EPIC: (collection = 'natural') => `https://api.nasa.gov/EPIC/api/${collection}?api_key=${NASA_API_KEY}`,
+    IMAGES_SEARCH: 'https://images-api.nasa.gov/search'
+  },
+  SPACEX: {
+    LAUNCHES: 'https://api.spacexdata.com/v4/launches',
+    LAUNCHES_UPCOMING: 'https://api.spacexdata.com/v4/launches/upcoming',
+    LAUNCHES_PAST: 'https://api.spacexdata.com/v4/launches/past',
+    LAUNCHES_LATEST: 'https://api.spacexdata.com/v4/launches/latest',
+    LAUNCHES_NEXT: 'https://api.spacexdata.com/v4/launches/next',
+    ROCKETS: 'https://api.spacexdata.com/v4/rockets'
+  },
+  ISS: {
+    POSITION: 'http://api.open-notify.org/iss-now.json',
+    ASTRONAUTS: 'http://api.open-notify.org/astros.json'
+  }
+};
 
 export const API_ENDPOINTS = {
   NASA: {
