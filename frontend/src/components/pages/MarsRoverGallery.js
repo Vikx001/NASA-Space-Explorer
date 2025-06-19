@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { API_ENDPOINTS, apiRequest, buildQueryString } from "../../config/api";
+import apiClient from "../../utils/apiClient";
 
 const MarsRoverGallery = () => {
   const [photos, setPhotos] = useState([]);
@@ -8,8 +8,7 @@ const MarsRoverGallery = () => {
   useEffect(() => {
     const fetchMarsPhotos = async () => {
       try {
-        const queryString = buildQueryString({ sol: 1000 });
-        const data = await apiRequest(`${API_ENDPOINTS.NASA.MARS_PHOTOS('curiosity')}?${queryString}`);
+        const data = await apiClient.nasa.getMarsPhotos('curiosity', { sol: 1000 });
         setPhotos(data.photos.slice(0, 12));
       } catch (err) {
         console.error("Failed to fetch Mars photos", err);

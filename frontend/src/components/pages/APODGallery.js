@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { API_ENDPOINTS, apiRequest } from "../../config/api";
+import apiClient from "../../utils/apiClient";
 
 const APODGallery = () => {
   const [apodData, setApodData] = useState([]);
@@ -23,9 +23,7 @@ const APODGallery = () => {
   const fetchAPOD = async (params = {}) => {
     setLoading(true);
     try {
-      const queryString = new URLSearchParams(params).toString();
-      const url = queryString ? `${API_ENDPOINTS.NASA.APOD}?${queryString}` : API_ENDPOINTS.NASA.APOD;
-      const data = await apiRequest(url);
+      const data = await apiClient.nasa.getAPOD(params);
       setApodData(Array.isArray(data) ? data : [data]);
     } catch (err) {
       console.error("Failed to fetch APOD", err);

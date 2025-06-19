@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from "react";
 import { motion } from "framer-motion";
 import Globe from "react-globe.gl";
 import { FaSatelliteDish, FaUserAstronaut, FaGlobe, FaLockOpen, FaVideo, FaPlay, FaPause, FaExpand, FaCompress } from "react-icons/fa";
-import { API_ENDPOINTS, apiRequest, buildQueryString } from "../../config/api";
+import apiClient from "../../utils/apiClient";
 
 const ISSTracker = () => {
   const [position, setPosition] = useState(null);
@@ -29,34 +29,31 @@ const ISSTracker = () => {
 
 
 
-  // Fetch globe textures and external links
+  // Initialize globe textures and external links
   useEffect(() => {
-    const fetchResources = async () => {
-      try {
-        const [texturesData, linksData] = await Promise.all([
-          apiRequest(API_ENDPOINTS.EXTERNAL.GLOBE_TEXTURES),
-          apiRequest(API_ENDPOINTS.EXTERNAL.LINKS)
-        ]);
-        setGlobeTextures(texturesData);
-        setCurrentTexture(texturesData.night);
-        setExternalLinks(linksData);
-      } catch (error) {
-        console.error('Failed to fetch resources:', error);
-        // Fallback to direct URLs if backend fails
-        const fallbackTextures = {
-          night: '//unpkg.com/three-globe/example/img/earth-night.jpg',
-          day: '//unpkg.com/three-globe/example/img/earth-blue-marble.jpg'
-        };
-        setGlobeTextures(fallbackTextures);
-        setCurrentTexture(fallbackTextures.night);
-      }
+    const initializeResources = () => {
+      // Use direct URLs for textures
+      const fallbackTextures = {
+        night: '//unpkg.com/three-globe/example/img/earth-night.jpg',
+        day: '//unpkg.com/three-globe/example/img/earth-blue-marble.jpg'
+      };
+      setGlobeTextures(fallbackTextures);
+      setCurrentTexture(fallbackTextures.night);
+
+      // Set default external links
+      const defaultLinks = {
+        nasa_iss: 'https://www.nasa.gov/mission_pages/station/main/index.html',
+        iss_tracker: 'https://spotthestation.nasa.gov/',
+        live_stream: 'https://www.nasa.gov/live'
+      };
+      setExternalLinks(defaultLinks);
     };
-    fetchResources();
+    initializeResources();
   }, []);
 
   const fetchPosition = async () => {
     try {
-      const data = await apiRequest(API_ENDPOINTS.ISS.POSITION);
+      const data = await apiClient.iss.getPosition();
       const lat = parseFloat(data.iss_position.latitude);
       const lng = parseFloat(data.iss_position.longitude);
       const timestamp = data.timestamp;
@@ -97,9 +94,10 @@ const ISSTracker = () => {
 
   const fetchLocationName = async (lat, lng) => {
     try {
-      const queryString = buildQueryString({ lat, lon: lng });
-      const data = await apiRequest(`${API_ENDPOINTS.ISS.LOCATION}?${queryString}`);
-      setPlaceName(data?.display_name || "Unknown Area");
+      // Use a simple location description based on coordinates
+      const latDir = lat >= 0 ? 'N' : 'S';
+      const lngDir = lng >= 0 ? 'E' : 'W';
+      setPlaceName(`${Math.abs(lat).toFixed(1)}°${latDir}, ${Math.abs(lng).toFixed(1)}°${lngDir}`);
     } catch {
       setPlaceName("Unknown Area");
     }
@@ -107,7 +105,7 @@ const ISSTracker = () => {
 
   const fetchAstronauts = async () => {
     try {
-      const data = await apiRequest(API_ENDPOINTS.ISS.ASTRONAUTS);
+      const data = await apiClient.iss.getAstronauts();
       setAstronauts(data.people.filter((p) => p.craft === "ISS"));
     } catch (err) {
       console.error("Failed to fetch astronauts", err);

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { FaMeteor, FaRulerCombined, FaExclamationTriangle } from "react-icons/fa";
-import { API_ENDPOINTS, apiRequest, buildQueryString } from "../../config/api";
+import apiClient from "../../utils/apiClient";
 
 const NEOTracker = () => {
   const [neoData, setNeoData] = useState([]);
@@ -13,11 +13,10 @@ const NEOTracker = () => {
       try {
         // Fetch NEO data
         const today = new Date().toISOString().split("T")[0];
-        const queryString = buildQueryString({
+        const neoResponse = await apiClient.nasa.getNEOFeed({
           start_date: today,
           end_date: today
         });
-        const neoResponse = await apiRequest(`${API_ENDPOINTS.NASA.NEO_FEED}?${queryString}`);
         const neos = neoResponse.near_earth_objects[today] || [];
         setNeoData(neos);
 

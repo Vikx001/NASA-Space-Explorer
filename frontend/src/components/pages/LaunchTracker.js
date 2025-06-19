@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { motion } from "framer-motion";
-import { API_ENDPOINTS, apiRequest } from "../../config/api";
+import apiClient from "../../utils/apiClient";
 
 const LaunchTracker = () => {
   const [launches, setLaunches] = useState([]);
@@ -9,7 +9,7 @@ const LaunchTracker = () => {
   useEffect(() => {
     const fetchLaunches = async () => {
       try {
-        const data = await apiRequest(API_ENDPOINTS.SPACEX.LAUNCHES_UPCOMING);
+        const data = await apiClient.spacex.getLaunches('upcoming');
         const sorted = data.sort((a, b) => new Date(a.date_utc) - new Date(b.date_utc));
         setLaunches(sorted.slice(0, 5));
       } catch (err) {
