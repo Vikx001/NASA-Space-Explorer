@@ -242,7 +242,7 @@ const ISSTracker = () => {
     <div className="p-6 bg-black text-white min-h-screen font-nasa relative">
       <div className="absolute top-0 left-0 w-full h-full bg-[radial-gradient(circle,_rgba(255,255,255,0.05)_1px,_transparent_1px)] bg-[length:20px_20px] animate-pulse z-0" />
       <motion.h2 className="text-4xl font-bold mb-6 text-center z-10 relative">
-        ISS Real-Time Tracker
+        🛰️ ISS Real-Time Tracker
       </motion.h2>
 
       <div className="grid md:grid-cols-3 gap-6 mb-6 z-10 relative">
