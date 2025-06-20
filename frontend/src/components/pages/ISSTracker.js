@@ -391,72 +391,38 @@ const ISSTracker = () => {
             ref={globeRef}
             globeImageUrl={currentTexture}
             backgroundColor="rgba(0,0,0,0.1)"
-            width={isFullscreen ? window.innerWidth - 32 : undefined}
+            width={isFullscreen ? window.innerWidth - 32 : 800}
             height={isFullscreen ? window.innerHeight - 32 : globeSize}
 
-            // Enhanced ISS Position
+            // ISS Position Point
             pointsData={position ? [{
-              ...position,
+              lat: position.lat,
+              lng: position.lng,
               size: 1,
-              label: `ISS - Speed: ${issSpeed.toFixed(1)} km/h | Trail: ${trailStyle}`,
-              color: trailStyle === "futuristic" ? "#00ffff" :
-                     trailStyle === "neon" ? "#ff00ff" :
-                     trailStyle === "plasma" ? "#ff4500" : "#ff6b35"
+              color: "#ff6b35"
             }] : []}
             pointLat="lat"
             pointLng="lng"
-            pointColor={(point) => point.color}
-            pointAltitude={trailStyle === "futuristic" ? 0.03 : 0.02}
-            pointRadius={trailStyle === "futuristic" ? 1.2 :
-                        trailStyle === "neon" ? 1.0 :
-                        trailStyle === "plasma" ? 1.1 : 0.8}
-            pointLabel="label"
+            pointColor="color"
+            pointAltitude={0.02}
+            pointRadius={1}
 
-            // Enhanced ISS Trajectory - FIXED PROPERTIES
+            // ISS Trail - SIMPLIFIED
             arcsData={arcsData}
             arcStartLat="startLat"
             arcStartLng="startLng"
             arcEndLat="endLat"
             arcEndLng="endLng"
-            arcColor={(arc) => arc.color || "#ff6b35"}
-            arcStroke={(arc) => arc.width || 3}
-            arcAltitude={(arc) => arc.altitude || 0.02}
-            arcDashLength={trailStyle === "neon" ? 0.1 : 1}
-            arcDashGap={trailStyle === "neon" ? 0.05 : 0}
-            arcDashAnimateTime={trailStyle === "neon" ? 3000 : 0}
+            arcColor="color"
+            arcStroke="width"
+            arcAltitude={0.02}
 
-            // Atmosphere
+            // Basic atmosphere
             atmosphereColor="#00d4ff"
             atmosphereAltitude={0.15}
 
-            // Animation
+            // Enable interaction
             enablePointerInteraction={true}
-            animateIn={true}
-
-            // Particle effects for futuristic trail
-            hexBinPointsData={trailStyle === "futuristic" ? particleData : []}
-            hexBinPointLat="lat"
-            hexBinPointLng="lng"
-            hexBinPointWeight="size"
-            hexBinResolution={4}
-            hexMargin={0.1}
-            hexTopColor={() => `rgba(100, 200, 255, 0.8)`}
-            hexSideColor={() => `rgba(50, 150, 255, 0.4)`}
-            hexAltitude={0.01}
-
-            // Labels for major cities (optional)
-            labelsData={[
-              { lat: 40.7128, lng: -74.0060, text: 'New York', size: 0.5 },
-              { lat: 51.5074, lng: -0.1278, text: 'London', size: 0.5 },
-              { lat: 35.6762, lng: 139.6503, text: 'Tokyo', size: 0.5 },
-              { lat: -33.8688, lng: 151.2093, text: 'Sydney', size: 0.5 }
-            ]}
-            labelLat="lat"
-            labelLng="lng"
-            labelText="text"
-            labelSize="size"
-            labelColor={() => "#ffffff"}
-            labelResolution={2}
           />
         )}
 
