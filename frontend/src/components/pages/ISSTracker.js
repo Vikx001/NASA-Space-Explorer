@@ -54,6 +54,7 @@ const ISSTracker = () => {
   const fetchPosition = async () => {
     try {
       const data = await apiClient.iss.getPosition();
+      console.log('ISS Position Data:', data); // Debug log
       const lat = parseFloat(data.iss_position.latitude);
       const lng = parseFloat(data.iss_position.longitude);
       const timestamp = data.timestamp;
@@ -334,9 +335,9 @@ const ISSTracker = () => {
 
 
 
-          {externalLinks.issLiveStream && (
+          {externalLinks.live_stream && (
             <a
-              href={externalLinks.issLiveStream}
+              href={externalLinks.live_stream}
               target="_blank"
               rel="noopener noreferrer"
               className="flex items-center justify-center gap-3 px-5 py-3 mt-4 rounded-lg bg-blue-600 hover:bg-blue-700 transition text-white text-sm font-semibold"

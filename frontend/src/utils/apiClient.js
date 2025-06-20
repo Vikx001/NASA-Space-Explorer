@@ -58,47 +58,19 @@ export const apiClient = {
     },
 
     async getNEOFeed(params = {}) {
-      try {
-        if (isProduction) {
-          const url = new URL(DIRECT_API_ENDPOINTS.NASA.NEO_FEED);
-          Object.entries(params).forEach(([key, value]) => {
-            if (value) url.searchParams.append(key, value);
-          });
-          return apiClient.get(url.toString());
-        }
-
-        const url = new URL(API_ENDPOINTS.NASA.NEO_FEED, window.location.origin);
+      if (isProduction) {
+        const url = new URL(DIRECT_API_ENDPOINTS.NASA.NEO_FEED);
         Object.entries(params).forEach(([key, value]) => {
           if (value) url.searchParams.append(key, value);
         });
         return apiClient.get(url.toString());
-      } catch (error) {
-        console.error('NEO API Error:', error);
-        // Return mock data if API fails
-        const today = new Date().toISOString().split("T")[0];
-        return {
-          near_earth_objects: {
-            [today]: [
-              {
-                id: "54016354",
-                name: "(2020 SO)",
-                is_potentially_hazardous_asteroid: false,
-                close_approach_data: [{
-                  close_approach_date_full: "2024-Dec-19 12:30",
-                  miss_distance: { kilometers: "1234567" },
-                  relative_velocity: { kilometers_per_hour: "12345" }
-                }],
-                estimated_diameter: {
-                  kilometers: {
-                    estimated_diameter_min: 0.008,
-                    estimated_diameter_max: 0.018
-                  }
-                }
-              }
-            ]
-          }
-        };
       }
+
+      const url = new URL(API_ENDPOINTS.NASA.NEO_FEED, window.location.origin);
+      Object.entries(params).forEach(([key, value]) => {
+        if (value) url.searchParams.append(key, value);
+      });
+      return apiClient.get(url.toString());
     },
 
     async getEPIC(collection = 'natural', params = {}) {
