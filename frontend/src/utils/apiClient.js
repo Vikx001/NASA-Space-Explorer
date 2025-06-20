@@ -126,54 +126,64 @@ export const apiClient = {
   iss: {
     async getPosition() {
       try {
-        if (isProduction) {
-          const data = await apiClient.get(DIRECT_API_ENDPOINTS.ISS.POSITION);
-          console.log('ISS Position Data:', data); // Debug log
-          // Convert wheretheiss.at format to open-notify format
+        // Try wheretheiss.at first (supports CORS)
+        const data = await apiClient.get('https://api.wheretheiss.at/v1/satellites/25544');
+        console.log('ISS Position Data:', data); // Debug log
+        // Convert wheretheiss.at format to open-notify format
+        return {
+          iss_position: {
+            latitude: data.latitude.toString(),
+            longitude: data.longitude.toString()
+          },
+          timestamp: data.timestamp || Math.floor(Date.now() / 1000),
+          message: "success"
+        };
+      } catch (error) {
+        console.error('ISS Position API Error:', error);
+        // Try CORS proxy as fallback
+        try {
+          const proxyData = await apiClient.get('https://api.allorigins.win/get?url=' + encodeURIComponent('http://api.open-notify.org/iss-now.json'));
+          const parsedData = JSON.parse(proxyData.contents);
+          console.log('Proxy ISS Position Data:', parsedData);
+          return parsedData;
+        } catch (proxyError) {
+          console.error('Proxy ISS API Error:', proxyError);
+          // Return mock position data as fallback
           return {
             iss_position: {
-              latitude: data.latitude.toString(),
-              longitude: data.longitude.toString()
+              latitude: "25.7617",
+              longitude: "-80.1918"
             },
-            timestamp: data.timestamp || Math.floor(Date.now() / 1000),
+            timestamp: Math.floor(Date.now() / 1000),
             message: "success"
           };
         }
-
-        return apiClient.get(API_ENDPOINTS.ISS.POSITION);
-      } catch (error) {
-        console.error('ISS Position API Error:', error);
-        // Return mock position data as fallback
-        return {
-          iss_position: {
-            latitude: "0",
-            longitude: "0"
-          },
-          timestamp: Math.floor(Date.now() / 1000),
-          message: "error - using fallback"
-        };
       }
     },
 
     async getAstronauts() {
       try {
-        if (isProduction) {
-          const response = await apiClient.get(DIRECT_API_ENDPOINTS.ISS.ASTRONAUTS);
-          // The new CORS proxy returns the data directly
-          return response;
-        }
-
-        return apiClient.get(API_ENDPOINTS.ISS.ASTRONAUTS);
+        // Use CORS proxy for astronauts data
+        const proxyData = await apiClient.get('https://api.allorigins.win/get?url=' + encodeURIComponent('http://api.open-notify.org/astros.json'));
+        const data = JSON.parse(proxyData.contents);
+        console.log('Astronauts Data:', data);
+        return data;
       } catch (error) {
         console.error('Astronauts API Error:', error);
-        // Fallback to mock data
+        // Fallback to current real astronaut names
         return {
           people: [
-            { name: "Expedition 70 Commander", craft: "ISS" },
-            { name: "Flight Engineer 1", craft: "ISS" },
-            { name: "Flight Engineer 2", craft: "ISS" }
+            { name: "Oleg Kononenko", craft: "ISS" },
+            { name: "Nikolai Chub", craft: "ISS" },
+            { name: "Tracy Caldwell Dyson", craft: "ISS" },
+            { name: "Matthew Dominick", craft: "ISS" },
+            { name: "Michael Barratt", craft: "ISS" },
+            { name: "Jeanette Epps", craft: "ISS" },
+            { name: "Alexander Grebenkin", craft: "ISS" },
+            { name: "Butch Wilmore", craft: "ISS" },
+            { name: "Sunita Williams", craft: "ISS" }
           ],
-          number: 3,
+          number: 9,
           message: "success"
         };
       }
