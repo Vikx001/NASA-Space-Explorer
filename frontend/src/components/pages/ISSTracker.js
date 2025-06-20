@@ -10,7 +10,46 @@ const ISSTracker = () => {
   const [astronauts, setAstronauts] = useState([]);
   const [isPlaying, setIsPlaying] = useState(true);
   const [loading, setLoading] = useState(true);
+  const [locationName, setLocationName] = useState("Locating...");
+  const [altitude, setAltitude] = useState(408); // ISS altitude in km
   const globeRef = useRef();
+
+  // Fetch location name from coordinates
+  const fetchLocationName = async (lat, lng) => {
+    try {
+      // Use a simple reverse geocoding service
+      const response = await fetch(
+        `https://api.bigdatacloud.net/data/reverse-geocode-client?latitude=${lat}&longitude=${lng}&localityLanguage=en`
+      );
+      const data = await response.json();
+
+      if (data.countryName) {
+        const location = data.city
+          ? `Over ${data.city}, ${data.countryName}`
+          : data.principalSubdivision
+          ? `Over ${data.principalSubdivision}, ${data.countryName}`
+          : `Over ${data.countryName}`;
+        setLocationName(location);
+      } else {
+        // Over ocean or remote area
+        const oceanName = getOceanName(lat, lng);
+        setLocationName(`Over ${oceanName}`);
+      }
+    } catch (error) {
+      console.error('Failed to fetch location:', error);
+      setLocationName(`Over Earth (${lat.toFixed(2)}°, ${lng.toFixed(2)}°)`);
+    }
+  };
+
+  // Determine ocean name based on coordinates
+  const getOceanName = (lat, lng) => {
+    if (lng >= -30 && lng <= 20 && lat >= -60 && lat <= 70) return "Atlantic Ocean";
+    if (lng >= 20 && lng <= 147 && lat >= -60 && lat <= 70) return "Indian Ocean";
+    if (lng >= 147 || lng <= -30) return "Pacific Ocean";
+    if (lat >= 70) return "Arctic Ocean";
+    if (lat <= -60) return "Southern Ocean";
+    return "Ocean";
+  };
 
   // Fetch ISS position
   const fetchPosition = async () => {
@@ -23,14 +62,17 @@ const ISSTracker = () => {
       
       const newPosition = { lat, lng, timestamp: Date.now() };
       setPosition(newPosition);
-      
+
+      // Fetch location name for this position
+      fetchLocationName(lat, lng);
+
       // Add to trajectory (keep last 20 points)
       setTrajectory(prev => {
         const newTrajectory = [...prev, newPosition].slice(-20);
         console.log('Trajectory points:', newTrajectory.length);
         return newTrajectory;
       });
-      
+
       setLoading(false);
     } catch (error) {
       console.error('Failed to fetch ISS position:', error);
@@ -82,13 +124,13 @@ const ISSTracker = () => {
 
   console.log('Arcs data:', arcsData.length, 'arcs');
 
-  // Points data for ISS position
+  // Points data for ISS position - Make it VERY visible
   const pointsData = position ? [{
     lat: position.lat,
     lng: position.lng,
-    size: 1,
-    color: '#ff6b35',
-    label: `ISS - Lat: ${position.lat.toFixed(2)}, Lng: ${position.lng.toFixed(2)}`
+    size: 2,
+    color: '#ff0000', // Bright red for visibility
+    label: `🛰️ ISS - ${locationName}`
   }] : [];
 
   if (loading) {
@@ -144,17 +186,17 @@ const ISSTracker = () => {
               height={600}
               backgroundColor="rgba(0,0,0,0)"
               globeImageUrl="//unpkg.com/three-globe/example/img/earth-night.jpg"
-              
-              // ISS Position
+
+              // ISS Position - BRIGHT RED DOT
               pointsData={pointsData}
               pointLat="lat"
               pointLng="lng"
               pointColor="color"
-              pointAltitude={0.02}
-              pointRadius={1.5}
+              pointAltitude={0.05} // Higher altitude for visibility
+              pointRadius={3} // Larger radius
               pointLabel="label"
-              
-              // ISS Trail
+
+              // ISS Trail - BRIGHT ORANGE
               arcsData={arcsData}
               arcStartLat="startLat"
               arcStartLng="startLng"
@@ -162,15 +204,16 @@ const ISSTracker = () => {
               arcEndLng="endLng"
               arcColor="color"
               arcStroke="stroke"
-              arcAltitude={0.01}
+              arcAltitude={0.02}
               arcDashLength={1}
               arcDashGap={0}
-              
-              // Auto-rotate
+
+              // Controls
               enablePointerInteraction={true}
+              animateIn={false}
             />
             
-            {/* Status overlay */}
+            {/* Left Status overlay */}
             <div className="absolute top-4 left-4 bg-black bg-opacity-70 text-white p-4 rounded-lg">
               <div className="flex items-center gap-2 mb-2">
                 <div className={`w-3 h-3 rounded-full ${isPlaying ? 'bg-green-400 animate-pulse' : 'bg-red-400'}`}></div>
@@ -181,9 +224,31 @@ const ISSTracker = () => {
                   <div>Lat: {position.lat.toFixed(4)}°</div>
                   <div>Lng: {position.lng.toFixed(4)}°</div>
                   <div>Speed: ~27,600 km/h</div>
+                  <div>Altitude: ~{altitude} km</div>
                   <div>Trail Points: {trajectory.length}</div>
                 </div>
               )}
+            </div>
+
+            {/* Right Location overlay */}
+            <div className="absolute top-4 right-4 bg-blue-900 bg-opacity-80 text-white p-4 rounded-lg min-w-[250px]">
+              <div className="flex items-center gap-2 mb-2">
+                <FaSatelliteDish className="text-red-400 animate-pulse" />
+                <span className="font-bold text-lg">ISS LOCATION</span>
+              </div>
+              <div className="text-center">
+                <div className="text-xl font-bold text-blue-200 mb-1">
+                  {locationName}
+                </div>
+                {position && (
+                  <div className="text-sm text-gray-300">
+                    {position.lat.toFixed(2)}°, {position.lng.toFixed(2)}°
+                  </div>
+                )}
+                <div className="text-xs text-gray-400 mt-2">
+                  Updates every 5 seconds
+                </div>
+              </div>
             </div>
           </div>
         </div>
