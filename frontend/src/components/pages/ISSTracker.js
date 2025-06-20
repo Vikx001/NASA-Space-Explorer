@@ -70,7 +70,11 @@ const ISSTracker = () => {
 
       const newPosition = { lat, lng, timestamp };
       setPosition(newPosition);
-      setTrajectory((prev) => [...prev.slice(-50), newPosition]); // Keep more trajectory points
+      setTrajectory((prev) => {
+        const newTrajectory = [...prev.slice(-50), newPosition];
+        console.log('Trajectory updated:', newTrajectory.length, 'points'); // Debug log
+        return newTrajectory;
+      });
       fetchLocationName(lat, lng);
 
       if (followISS && globeRef.current) {
@@ -145,6 +149,19 @@ const ISSTracker = () => {
   useEffect(() => {
     fetchPosition();
     fetchAstronauts();
+
+    // Add some mock trajectory points for testing
+    if (trajectory.length === 0) {
+      const mockTrajectory = [
+        { lat: 25.7617, lng: -80.1918, timestamp: Date.now() - 20000 },
+        { lat: 26.7617, lng: -79.1918, timestamp: Date.now() - 15000 },
+        { lat: 27.7617, lng: -78.1918, timestamp: Date.now() - 10000 },
+        { lat: 28.7617, lng: -77.1918, timestamp: Date.now() - 5000 }
+      ];
+      setTrajectory(mockTrajectory);
+      console.log('Added mock trajectory points:', mockTrajectory.length);
+    }
+
     let interval;
     if (isPlaying) {
       interval = setInterval(fetchPosition, 5000);
@@ -207,6 +224,15 @@ const ISSTracker = () => {
       width: getTrailWidth(i, total),
       altitude: trailStyle === "futuristic" ? 0.02 + (i / total) * 0.03 : 0.02,
     };
+  });
+
+  // Debug logging for trail
+  console.log('Trail Debug:', {
+    trajectoryLength: trajectory.length,
+    showTrajectory,
+    arcsDataLength: arcsData.length,
+    trailStyle,
+    firstArc: arcsData[0]
   });
 
   // Additional particle effects for futuristic trail
@@ -371,37 +397,33 @@ const ISSTracker = () => {
             width={isFullscreen ? window.innerWidth - 32 : undefined}
             height={isFullscreen ? window.innerHeight - 32 : globeSize}
 
-            // Enhanced ISS Position
+            // Enhanced ISS Position - MAKE MORE VISIBLE
             pointsData={position ? [{
               ...position,
-              size: 1,
-              label: `ISS - Speed: ${issSpeed.toFixed(1)} km/h | Trail: ${trailStyle}`,
-              color: trailStyle === "futuristic" ? "#00ffff" :
-                     trailStyle === "neon" ? "#ff00ff" :
-                     trailStyle === "plasma" ? "#ff4500" : "#ff6b35"
+              size: 2,
+              label: `ISS - Speed: ${issSpeed.toFixed(1)} km/h | Trail: ${trailStyle} | Points: ${trajectory.length}`,
+              color: "#ff6b35"
             }] : []}
             pointLat="lat"
             pointLng="lng"
-            pointColor={(point) => point.color}
-            pointAltitude={trailStyle === "futuristic" ? 0.03 : 0.02}
-            pointRadius={trailStyle === "futuristic" ? 1.2 :
-                        trailStyle === "neon" ? 1.0 :
-                        trailStyle === "plasma" ? 1.1 : 0.8}
+            pointColor={(point) => point.color || "#ff6b35"}
+            pointAltitude={0.03}
+            pointRadius={2}
             pointLabel="label"
 
-            // Enhanced ISS Trajectory
-            arcsData={showTrajectory ? arcsData : []}
+            // Enhanced ISS Trajectory - ALWAYS SHOW FOR DEBUG
+            arcsData={arcsData}
             arcsStartLat="startLat"
             arcsStartLng="startLng"
             arcsEndLat="endLat"
             arcsEndLng="endLng"
-            arcsColor={(arc) => arc.color}
-            arcsStroke={(arc) => arc.width}
-            arcsAltitude={(arc) => arc.altitude}
-            arcsTransitionDuration={trailStyle === "futuristic" ? 2000 : 1000}
-            arcsDashLength={trailStyle === "neon" ? 0.1 : 1}
-            arcsDashGap={trailStyle === "neon" ? 0.05 : 0}
-            arcsDashAnimateTime={trailStyle === "neon" ? 3000 : 0}
+            arcsColor={(arc) => arc.color || "#ff6b35"}
+            arcsStroke={(arc) => arc.width || 3}
+            arcsAltitude={(arc) => arc.altitude || 0.02}
+            arcsTransitionDuration={1000}
+            arcsDashLength={1}
+            arcsDashGap={0}
+            arcsDashAnimateTime={0}
 
             // Atmosphere
             atmosphereColor="#00d4ff"
