@@ -145,6 +145,19 @@ const ISSTracker = () => {
   useEffect(() => {
     fetchPosition();
     fetchAstronauts();
+
+    // Add some initial mock trajectory points for testing trail
+    if (trajectory.length === 0) {
+      const mockTrajectory = [
+        { lat: 25.7617, lng: -80.1918, timestamp: Date.now() - 20000 },
+        { lat: 26.7617, lng: -79.1918, timestamp: Date.now() - 15000 },
+        { lat: 27.7617, lng: -78.1918, timestamp: Date.now() - 10000 },
+        { lat: 28.7617, lng: -77.1918, timestamp: Date.now() - 5000 }
+      ];
+      setTrajectory(mockTrajectory);
+      console.log('Added mock trajectory points for trail testing:', mockTrajectory.length);
+    }
+
     let interval;
     if (isPlaying) {
       interval = setInterval(fetchPosition, 5000);
@@ -162,20 +175,20 @@ const ISSTracker = () => {
     }
   };
 
-  // Enhanced trajectory data with different visual styles
+  // Enhanced trajectory data with different visual styles - MADE MORE VISIBLE
   const getTrailColor = (index, total) => {
     const progress = index / total;
     switch (trailStyle) {
       case "classic":
-        return `rgba(0, 212, 255, ${0.3 + progress * 0.7})`;
+        return `rgba(0, 212, 255, ${0.6 + progress * 0.4})`; // More opaque
       case "futuristic":
-        return `rgba(${Math.floor(255 * progress)}, ${Math.floor(100 + 155 * progress)}, 255, ${0.4 + progress * 0.6})`;
+        return `rgba(${Math.floor(255 * progress)}, ${Math.floor(100 + 155 * progress)}, 255, ${0.7 + progress * 0.3})`;
       case "neon":
-        return `rgba(${Math.floor(255 * (1 - progress))}, 255, ${Math.floor(255 * progress)}, ${0.5 + progress * 0.5})`;
+        return `rgba(${Math.floor(255 * (1 - progress))}, 255, ${Math.floor(255 * progress)}, ${0.8 + progress * 0.2})`;
       case "plasma":
-        return `rgba(255, ${Math.floor(100 * (1 - progress))}, ${Math.floor(255 * progress)}, ${0.6 + progress * 0.4})`;
+        return `rgba(255, ${Math.floor(100 * (1 - progress))}, ${Math.floor(255 * progress)}, ${0.8 + progress * 0.2})`;
       default:
-        return `rgba(0, 212, 255, ${0.3 + progress * 0.7})`;
+        return `rgba(255, 107, 53, ${0.8 + progress * 0.2})`; // Bright orange, very visible
     }
   };
 
@@ -183,19 +196,19 @@ const ISSTracker = () => {
     const progress = index / total;
     switch (trailStyle) {
       case "classic":
-        return 1 + progress * 2;
+        return 2 + progress * 3; // Thicker
       case "futuristic":
-        return 0.5 + progress * 4;
+        return 1.5 + progress * 4;
       case "neon":
-        return 2 + progress * 3;
+        return 3 + progress * 3;
       case "plasma":
-        return 1.5 + progress * 3.5;
+        return 2.5 + progress * 3.5;
       default:
-        return 1 + progress * 2;
+        return 3 + progress * 2; // Much thicker default
     }
   };
 
-  const arcsData = trajectory.slice(1).map((pos, i) => {
+  const arcsData = trajectory.length > 1 ? trajectory.slice(1).map((pos, i) => {
     const start = trajectory[i];
     const total = trajectory.length - 1;
     return {
@@ -207,6 +220,16 @@ const ISSTracker = () => {
       width: getTrailWidth(i, total),
       altitude: trailStyle === "futuristic" ? 0.02 + (i / total) * 0.03 : 0.02,
     };
+  }) : [];
+
+  // Debug logging for trail
+  console.log('Trail Debug:', {
+    trajectoryLength: trajectory.length,
+    showTrajectory,
+    arcsDataLength: arcsData.length,
+    trailStyle,
+    firstArc: arcsData[0],
+    lastArc: arcsData[arcsData.length - 1]
   });
 
   // Additional particle effects for futuristic trail
@@ -389,19 +412,18 @@ const ISSTracker = () => {
                         trailStyle === "plasma" ? 1.1 : 0.8}
             pointLabel="label"
 
-            // Enhanced ISS Trajectory
-            arcsData={showTrajectory ? arcsData : []}
-            arcsStartLat="startLat"
-            arcsStartLng="startLng"
-            arcsEndLat="endLat"
-            arcsEndLng="endLng"
-            arcsColor={(arc) => arc.color}
-            arcsStroke={(arc) => arc.width}
-            arcsAltitude={(arc) => arc.altitude}
-            arcsTransitionDuration={trailStyle === "futuristic" ? 2000 : 1000}
-            arcsDashLength={trailStyle === "neon" ? 0.1 : 1}
-            arcsDashGap={trailStyle === "neon" ? 0.05 : 0}
-            arcsDashAnimateTime={trailStyle === "neon" ? 3000 : 0}
+            // Enhanced ISS Trajectory - FIXED PROPERTIES
+            arcsData={arcsData}
+            arcStartLat="startLat"
+            arcStartLng="startLng"
+            arcEndLat="endLat"
+            arcEndLng="endLng"
+            arcColor={(arc) => arc.color || "#ff6b35"}
+            arcStroke={(arc) => arc.width || 3}
+            arcAltitude={(arc) => arc.altitude || 0.02}
+            arcDashLength={trailStyle === "neon" ? 0.1 : 1}
+            arcDashGap={trailStyle === "neon" ? 0.05 : 0}
+            arcDashAnimateTime={trailStyle === "neon" ? 3000 : 0}
 
             // Atmosphere
             atmosphereColor="#00d4ff"
