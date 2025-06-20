@@ -1,490 +1,225 @@
 import React, { useState, useEffect, useRef } from "react";
 import { motion } from "framer-motion";
 import Globe from "react-globe.gl";
-import { FaSatelliteDish, FaUserAstronaut, FaGlobe, FaLockOpen, FaVideo, FaPlay, FaPause, FaExpand, FaCompress } from "react-icons/fa";
+import { FaSatelliteDish, FaUserAstronaut, FaPlay, FaPause, FaVideo } from "react-icons/fa";
 import apiClient from "../../utils/apiClient";
 
 const ISSTracker = () => {
   const [position, setPosition] = useState(null);
   const [trajectory, setTrajectory] = useState([]);
-  const [placeName, setPlaceName] = useState("");
   const [astronauts, setAstronauts] = useState([]);
-  const [globeTextures, setGlobeTextures] = useState({
-    night: "//unpkg.com/three-globe/example/img/earth-night.jpg",
-    day: "//unpkg.com/three-globe/example/img/earth-blue-marble.jpg"
-  });
-  const [currentTexture, setCurrentTexture] = useState("//unpkg.com/three-globe/example/img/earth-night.jpg");
-  const [followISS, setFollowISS] = useState(true);
-  const [externalLinks, setExternalLinks] = useState({});
   const [isPlaying, setIsPlaying] = useState(true);
-  const [isFullscreen, setIsFullscreen] = useState(false);
-  const [showTrajectory, setShowTrajectory] = useState(true);
-  const [trailStyle, setTrailStyle] = useState("futuristic"); // "classic", "futuristic", "neon", "plasma"
-  const [globeSize, setGlobeSize] = useState(600);
-  const [issSpeed, setIssSpeed] = useState(0);
-  const [altitude, setAltitude] = useState(408); // Average ISS altitude in km
-  const [orbitPeriod, setOrbitPeriod] = useState(92.68); // ISS orbital period in minutes
-
+  const [loading, setLoading] = useState(true);
   const globeRef = useRef();
 
-
-
-  // Initialize globe textures and external links
-  useEffect(() => {
-    const initializeResources = () => {
-      // Use direct URLs for textures
-      const fallbackTextures = {
-        night: '//unpkg.com/three-globe/example/img/earth-night.jpg',
-        day: '//unpkg.com/three-globe/example/img/earth-blue-marble.jpg'
-      };
-      setGlobeTextures(fallbackTextures);
-      setCurrentTexture(fallbackTextures.night);
-
-      // Set default external links
-      const defaultLinks = {
-        nasa_iss: 'https://www.nasa.gov/mission_pages/station/main/index.html',
-        iss_tracker: 'https://spotthestation.nasa.gov/',
-        live_stream: 'https://www.nasa.gov/live'
-      };
-      setExternalLinks(defaultLinks);
-    };
-    initializeResources();
-  }, []);
-
+  // Fetch ISS position
   const fetchPosition = async () => {
     try {
       const data = await apiClient.iss.getPosition();
-      console.log('ISS Position Data:', data); // Debug log
+      console.log('ISS Position Data:', data);
+      
       const lat = parseFloat(data.iss_position.latitude);
       const lng = parseFloat(data.iss_position.longitude);
-      const timestamp = data.timestamp;
-
-      // Calculate speed if we have previous position
-      if (position && trajectory.length > 0) {
-        const prevPos = trajectory[trajectory.length - 1];
-        const distance = calculateDistance(prevPos.lat, prevPos.lng, lat, lng);
-        const timeElapsed = 5; // 5 seconds between updates
-        const speed = (distance / timeElapsed) * 3.6; // Convert m/s to km/h
-        setIssSpeed(speed);
-      }
-
-      const newPosition = { lat, lng, timestamp };
+      
+      const newPosition = { lat, lng, timestamp: Date.now() };
       setPosition(newPosition);
-      setTrajectory((prev) => {
-        const newTrajectory = [...prev.slice(-50), newPosition];
-        console.log('Trajectory updated:', newTrajectory.length, 'points'); // Debug log
+      
+      // Add to trajectory (keep last 20 points)
+      setTrajectory(prev => {
+        const newTrajectory = [...prev, newPosition].slice(-20);
+        console.log('Trajectory points:', newTrajectory.length);
         return newTrajectory;
       });
-      fetchLocationName(lat, lng);
-
-      if (followISS && globeRef.current) {
-        globeRef.current.pointOfView({ lat, lng, altitude: 2 }, 1000);
-      }
-    } catch (err) {
-      console.error("Failed to fetch ISS position", err);
+      
+      setLoading(false);
+    } catch (error) {
+      console.error('Failed to fetch ISS position:', error);
+      setLoading(false);
     }
   };
 
-  // Calculate distance between two points on Earth
-  const calculateDistance = (lat1, lon1, lat2, lon2) => {
-    const R = 6371000; // Earth's radius in meters
-    const dLat = (lat2 - lat1) * Math.PI / 180;
-    const dLon = (lon2 - lon1) * Math.PI / 180;
-    const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
-              Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
-              Math.sin(dLon/2) * Math.sin(dLon/2);
-    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
-    return R * c;
-  };
-
-  const fetchLocationName = async (lat, lng) => {
-    try {
-      // Use a simple location description based on coordinates
-      const latDir = lat >= 0 ? 'N' : 'S';
-      const lngDir = lng >= 0 ? 'E' : 'W';
-      setPlaceName(`${Math.abs(lat).toFixed(1)}°${latDir}, ${Math.abs(lng).toFixed(1)}°${lngDir}`);
-    } catch {
-      setPlaceName("Unknown Area");
-    }
-  };
-
+  // Fetch astronauts
   const fetchAstronauts = async () => {
     try {
       const data = await apiClient.iss.getAstronauts();
-      setAstronauts(data.people.filter((p) => p.craft === "ISS"));
-    } catch (err) {
-      console.error("Failed to fetch astronauts", err);
+      console.log('Astronauts Data:', data);
+      setAstronauts(data.people || []);
+    } catch (error) {
+      console.error('Failed to fetch astronauts:', error);
+      // Fallback data
+      setAstronauts([
+        { name: "Expedition Crew Member 1", craft: "ISS" },
+        { name: "Expedition Crew Member 2", craft: "ISS" },
+        { name: "Expedition Crew Member 3", craft: "ISS" }
+      ]);
     }
   };
 
-  // Control functions
-  const togglePlayPause = () => {
-    setIsPlaying(!isPlaying);
-  };
-
-  const toggleFullscreen = () => {
-    setIsFullscreen(!isFullscreen);
-    setGlobeSize(isFullscreen ? 600 : 800);
-  };
-
-  const toggleTrajectory = () => {
-    setShowTrajectory(!showTrajectory);
-  };
-
-  const cycleTrailStyle = () => {
-    const styles = ["classic", "futuristic", "neon", "plasma"];
-    const currentIndex = styles.indexOf(trailStyle);
-    const nextIndex = (currentIndex + 1) % styles.length;
-    setTrailStyle(styles[nextIndex]);
-  };
-
-  const resetView = () => {
-    if (globeRef.current && position) {
-      globeRef.current.pointOfView({ lat: 0, lng: 0, altitude: 2 }, 1000);
-    }
-  };
-
-
-
+  // Initialize and set up interval
   useEffect(() => {
     fetchPosition();
     fetchAstronauts();
-
-    // Add some mock trajectory points for testing
-    if (trajectory.length === 0) {
-      const mockTrajectory = [
-        { lat: 25.7617, lng: -80.1918, timestamp: Date.now() - 20000 },
-        { lat: 26.7617, lng: -79.1918, timestamp: Date.now() - 15000 },
-        { lat: 27.7617, lng: -78.1918, timestamp: Date.now() - 10000 },
-        { lat: 28.7617, lng: -77.1918, timestamp: Date.now() - 5000 }
-      ];
-      setTrajectory(mockTrajectory);
-      console.log('Added mock trajectory points:', mockTrajectory.length);
-    }
-
+    
     let interval;
     if (isPlaying) {
-      interval = setInterval(fetchPosition, 5000);
+      interval = setInterval(fetchPosition, 5000); // Update every 5 seconds
     }
+    
     return () => {
       if (interval) clearInterval(interval);
     };
-  }, [followISS, isPlaying]);
+  }, [isPlaying]);
 
-  const toggleTexture = () => {
-    if (globeTextures.night && globeTextures.day) {
-      setCurrentTexture(prev => 
-        prev === globeTextures.night ? globeTextures.day : globeTextures.night
-      );
-    }
-  };
+  // Create arcs data for trajectory
+  const arcsData = trajectory.length > 1 ? trajectory.slice(1).map((pos, i) => ({
+    startLat: trajectory[i].lat,
+    startLng: trajectory[i].lng,
+    endLat: pos.lat,
+    endLng: pos.lng,
+    color: `rgba(255, 107, 53, ${0.3 + (i / trajectory.length) * 0.7})`,
+    stroke: 2
+  })) : [];
 
-  // Enhanced trajectory data with different visual styles
-  const getTrailColor = (index, total) => {
-    const progress = index / total;
-    switch (trailStyle) {
-      case "classic":
-        return `rgba(0, 212, 255, ${0.3 + progress * 0.7})`;
-      case "futuristic":
-        return `rgba(${Math.floor(255 * progress)}, ${Math.floor(100 + 155 * progress)}, 255, ${0.4 + progress * 0.6})`;
-      case "neon":
-        return `rgba(${Math.floor(255 * (1 - progress))}, 255, ${Math.floor(255 * progress)}, ${0.5 + progress * 0.5})`;
-      case "plasma":
-        return `rgba(255, ${Math.floor(100 * (1 - progress))}, ${Math.floor(255 * progress)}, ${0.6 + progress * 0.4})`;
-      default:
-        return `rgba(0, 212, 255, ${0.3 + progress * 0.7})`;
-    }
-  };
+  console.log('Arcs data:', arcsData.length, 'arcs');
 
-  const getTrailWidth = (index, total) => {
-    const progress = index / total;
-    switch (trailStyle) {
-      case "classic":
-        return 1 + progress * 2;
-      case "futuristic":
-        return 0.5 + progress * 4;
-      case "neon":
-        return 2 + progress * 3;
-      case "plasma":
-        return 1.5 + progress * 3.5;
-      default:
-        return 1 + progress * 2;
-    }
-  };
+  // Points data for ISS position
+  const pointsData = position ? [{
+    lat: position.lat,
+    lng: position.lng,
+    size: 1,
+    color: '#ff6b35',
+    label: `ISS - Lat: ${position.lat.toFixed(2)}, Lng: ${position.lng.toFixed(2)}`
+  }] : [];
 
-  const arcsData = trajectory.slice(1).map((pos, i) => {
-    const start = trajectory[i];
-    const total = trajectory.length - 1;
-    return {
-      startLat: start.lat,
-      startLng: start.lng,
-      endLat: pos.lat,
-      endLng: pos.lng,
-      color: getTrailColor(i, total),
-      width: getTrailWidth(i, total),
-      altitude: trailStyle === "futuristic" ? 0.02 + (i / total) * 0.03 : 0.02,
-    };
-  });
-
-  // Debug logging for trail
-  console.log('Trail Debug:', {
-    trajectoryLength: trajectory.length,
-    showTrajectory,
-    arcsDataLength: arcsData.length,
-    trailStyle,
-    firstArc: arcsData[0]
-  });
-
-  // Additional particle effects for futuristic trail
-  const particleData = trailStyle === "futuristic" && trajectory.length > 5
-    ? trajectory.slice(-10).map((pos, i) => ({
-        lat: pos.lat + (Math.random() - 0.5) * 0.1,
-        lng: pos.lng + (Math.random() - 0.5) * 0.1,
-        size: Math.random() * 0.3 + 0.1,
-        color: `rgba(${100 + Math.random() * 155}, ${200 + Math.random() * 55}, 255, ${Math.random() * 0.8 + 0.2})`,
-      }))
-    : [];
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-gray-900 via-blue-900 to-black flex items-center justify-center">
+        <div className="text-center">
+          <FaSatelliteDish className="text-6xl text-blue-400 animate-spin mx-auto mb-4" />
+          <p className="text-white text-xl">Tracking ISS...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
-    <div className="p-6 bg-black text-white min-h-screen font-nasa relative">
-      <div className="absolute top-0 left-0 w-full h-full bg-[radial-gradient(circle,_rgba(255,255,255,0.05)_1px,_transparent_1px)] bg-[length:20px_20px] animate-pulse z-0" />
-      <motion.h2 className="text-4xl font-bold mb-6 text-center z-10 relative">
-        ISS Real-Time Tracker
-      </motion.h2>
+    <div className="min-h-screen bg-gradient-to-br from-gray-900 via-blue-900 to-black">
+      {/* Header */}
+      <div className="container mx-auto px-4 py-8">
+        <motion.div
+          initial={{ opacity: 0, y: -20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="text-center mb-8"
+        >
+          <h1 className="text-4xl font-bold text-white mb-4 flex items-center justify-center gap-3">
+            <FaSatelliteDish className="text-blue-400" />
+            ISS Live Tracker
+          </h1>
+          <p className="text-gray-300 text-lg">
+            Track the International Space Station in real-time
+          </p>
+        </motion.div>
 
-      <div className="grid md:grid-cols-3 gap-6 mb-6 z-10 relative">
-        <div className="bg-gradient-to-br from-[#0d1b2a] to-[#1b263b] p-6 rounded-2xl shadow-xl border border-gray-700">
-          <h3 className="text-xl font-bold mb-4 flex items-center gap-3 text-white">
-            <FaSatelliteDish className="text-blue-400" /> Current Position
-          </h3>
-          {position && (
-            <>
-              <p className="text-sm text-gray-300 mb-2">
-                Latitude: <span className="text-blue-400 font-mono">{position.lat.toFixed(6)}°</span>
-              </p>
-              <p className="text-sm text-gray-300 mb-2">
-                Longitude: <span className="text-blue-400 font-mono">{position.lng.toFixed(6)}°</span>
-              </p>
-              <p className="text-sm text-gray-300 mb-2">
-                Speed: <span className="text-green-400 font-mono">{issSpeed.toFixed(1)} km/h</span>
-              </p>
-              <p className="text-sm text-gray-300 mb-2">
-                Altitude: <span className="text-purple-400 font-mono">{altitude} km</span>
-              </p>
-              <p className="text-sm text-gray-300 mb-2">
-                Orbit Period: <span className="text-orange-400 font-mono">{orbitPeriod} min</span>
-              </p>
-              <p className="text-sm text-gray-300">
-                Location: <span className="text-cyan-300 italic">{placeName}</span>
-              </p>
-            </>
-          )}
+        {/* Controls */}
+        <div className="flex justify-center mb-6">
+          <button
+            onClick={() => setIsPlaying(!isPlaying)}
+            className={`flex items-center gap-2 px-6 py-3 rounded-lg font-semibold transition ${
+              isPlaying 
+                ? 'bg-red-600 hover:bg-red-700 text-white' 
+                : 'bg-green-600 hover:bg-green-700 text-white'
+            }`}
+          >
+            {isPlaying ? <FaPause /> : <FaPlay />}
+            {isPlaying ? 'Pause Tracking' : 'Start Tracking'}
+          </button>
         </div>
 
-        <div className="bg-gradient-to-br from-[#1b263b] to-[#0d1b2a] p-6 rounded-2xl shadow-xl border border-gray-700">
-          <h4 className="text-xl font-bold mb-4 flex items-center gap-2 text-white">
-            <FaUserAstronaut className="text-blue-400" /> Crew Aboard ISS
-          </h4>
-          <div className="space-y-1">
-            {astronauts.map((astro, idx) => (
-              <div key={idx} className="text-sm text-gray-300">
-                {astro.name}
+        {/* Globe Container */}
+        <div className="flex justify-center mb-8">
+          <div className="relative">
+            <Globe
+              ref={globeRef}
+              width={800}
+              height={600}
+              backgroundColor="rgba(0,0,0,0)"
+              globeImageUrl="//unpkg.com/three-globe/example/img/earth-night.jpg"
+              
+              // ISS Position
+              pointsData={pointsData}
+              pointLat="lat"
+              pointLng="lng"
+              pointColor="color"
+              pointAltitude={0.02}
+              pointRadius={1.5}
+              pointLabel="label"
+              
+              // ISS Trail
+              arcsData={arcsData}
+              arcStartLat="startLat"
+              arcStartLng="startLng"
+              arcEndLat="endLat"
+              arcEndLng="endLng"
+              arcColor="color"
+              arcStroke="stroke"
+              arcAltitude={0.01}
+              arcDashLength={1}
+              arcDashGap={0}
+              
+              // Auto-rotate
+              enablePointerInteraction={true}
+            />
+            
+            {/* Status overlay */}
+            <div className="absolute top-4 left-4 bg-black bg-opacity-70 text-white p-4 rounded-lg">
+              <div className="flex items-center gap-2 mb-2">
+                <div className={`w-3 h-3 rounded-full ${isPlaying ? 'bg-green-400 animate-pulse' : 'bg-red-400'}`}></div>
+                <span className="font-semibold">{isPlaying ? 'LIVE' : 'PAUSED'}</span>
+              </div>
+              {position && (
+                <div className="text-sm space-y-1">
+                  <div>Lat: {position.lat.toFixed(4)}°</div>
+                  <div>Lng: {position.lng.toFixed(4)}°</div>
+                  <div>Speed: ~27,600 km/h</div>
+                  <div>Trail Points: {trajectory.length}</div>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+
+        {/* Astronauts Info */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="bg-gray-800 rounded-lg p-6 mb-6"
+        >
+          <h3 className="text-xl font-bold text-white mb-4 flex items-center gap-2">
+            <FaUserAstronaut className="text-blue-400" />
+            Current Crew ({astronauts.length})
+          </h3>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {astronauts.map((astronaut, index) => (
+              <div key={index} className="bg-gray-700 rounded-lg p-4">
+                <div className="text-white font-semibold">{astronaut.name}</div>
+                <div className="text-gray-300 text-sm">{astronaut.craft}</div>
               </div>
             ))}
           </div>
-          {astronauts.length === 0 && (
-            <p className="text-gray-400 text-sm">Loading crew information...</p>
-          )}
+        </motion.div>
+
+        {/* External Links */}
+        <div className="text-center">
+          <a
+            href="https://www.nasa.gov/live"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center gap-2 px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-semibold transition"
+          >
+            <FaVideo />
+            Watch NASA Live
+          </a>
         </div>
-
-        <div className="bg-gradient-to-br from-[#1b263b] to-[#0d1b2a] p-6 rounded-2xl shadow-xl border border-gray-700">
-          <h4 className="text-xl font-bold text-white mb-4">Controls</h4>
-          <div className="grid grid-cols-3 gap-2">
-            <button
-              onClick={togglePlayPause}
-              className={`flex items-center justify-center gap-2 px-3 py-2 rounded-lg transition text-white text-sm ${
-                isPlaying ? 'bg-slate-600 hover:bg-slate-700' : 'bg-slate-500 hover:bg-slate-600'
-              }`}
-            >
-              {isPlaying ? <FaPause /> : <FaPlay />}
-              {isPlaying ? 'Pause' : 'Play'}
-            </button>
-
-            <button
-              onClick={toggleTexture}
-              className="flex items-center justify-center gap-2 px-3 py-2 rounded-lg bg-slate-600 hover:bg-slate-700 transition text-white text-sm"
-            >
-              <FaGlobe /> Texture
-            </button>
-
-            <button
-              onClick={() => setFollowISS((prev) => !prev)}
-              className={`flex items-center justify-center gap-2 px-3 py-2 rounded-lg transition text-white text-sm ${
-                followISS ? 'bg-slate-700 hover:bg-slate-800' : 'bg-slate-500 hover:bg-slate-600'
-              }`}
-            >
-              <FaLockOpen /> {followISS ? "Unlock" : "Follow"}
-            </button>
-
-            <button
-              onClick={toggleTrajectory}
-              className={`flex items-center justify-center gap-2 px-3 py-2 rounded-lg transition text-white text-sm ${
-                showTrajectory ? 'bg-slate-600 hover:bg-slate-700' : 'bg-gray-600 hover:bg-gray-700'
-              }`}
-            >
-              Trail
-            </button>
-
-            <button
-              onClick={cycleTrailStyle}
-              className="flex items-center justify-center gap-2 px-3 py-2 rounded-lg bg-slate-600 hover:bg-slate-700 transition text-white text-sm"
-              title={`Current: ${trailStyle}`}
-            >
-              {trailStyle.charAt(0).toUpperCase() + trailStyle.slice(1)}
-            </button>
-
-            <button
-              onClick={toggleFullscreen}
-              className="flex items-center justify-center gap-2 px-3 py-2 rounded-lg bg-slate-600 hover:bg-slate-700 transition text-white text-sm"
-            >
-              {isFullscreen ? <FaCompress /> : <FaExpand />}
-              {isFullscreen ? 'Exit' : 'Full'}
-            </button>
-
-            <button
-              onClick={resetView}
-              className="flex items-center justify-center gap-2 px-3 py-2 rounded-lg bg-gray-600 hover:bg-gray-700 transition text-white text-sm"
-            >
-              Reset
-            </button>
-          </div>
-
-
-
-          {externalLinks.live_stream && (
-            <a
-              href={externalLinks.live_stream}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="flex items-center justify-center gap-3 px-5 py-3 mt-4 rounded-lg bg-blue-600 hover:bg-blue-700 transition text-white text-sm font-semibold"
-            >
-              <FaVideo /> Watch ISS Live Feed
-            </a>
-          )}
-        </div>
-      </div>
-
-      <div
-        className={`border border-gray-700 rounded-xl overflow-hidden relative z-10 shadow-lg transition-all duration-500 ${
-          isFullscreen ? 'fixed inset-4 z-50 bg-black' : ''
-        }`}
-        style={{ height: isFullscreen ? 'calc(100vh - 2rem)' : `${globeSize}px` }}
-      >
-        {!currentTexture && (
-          <div className="flex items-center justify-center h-full bg-gray-900">
-            <div className="text-center">
-              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-400 mx-auto mb-4"></div>
-              <p className="text-white">Loading Globe...</p>
-            </div>
-          </div>
-        )}
-
-        {currentTexture && (
-          <Globe
-            ref={globeRef}
-            globeImageUrl={currentTexture}
-            backgroundColor="rgba(0,0,0,0.1)"
-            width={isFullscreen ? window.innerWidth - 32 : undefined}
-            height={isFullscreen ? window.innerHeight - 32 : globeSize}
-
-            // Enhanced ISS Position - MAKE MORE VISIBLE
-            pointsData={position ? [{
-              ...position,
-              size: 2,
-              label: `ISS - Speed: ${issSpeed.toFixed(1)} km/h | Trail: ${trailStyle} | Points: ${trajectory.length}`,
-              color: "#ff6b35"
-            }] : []}
-            pointLat="lat"
-            pointLng="lng"
-            pointColor={(point) => point.color || "#ff6b35"}
-            pointAltitude={0.03}
-            pointRadius={2}
-            pointLabel="label"
-
-            // Enhanced ISS Trajectory - ALWAYS SHOW FOR DEBUG
-            arcsData={arcsData}
-            arcsStartLat="startLat"
-            arcsStartLng="startLng"
-            arcsEndLat="endLat"
-            arcsEndLng="endLng"
-            arcsColor={(arc) => arc.color || "#ff6b35"}
-            arcsStroke={(arc) => arc.width || 3}
-            arcsAltitude={(arc) => arc.altitude || 0.02}
-            arcsTransitionDuration={1000}
-            arcsDashLength={1}
-            arcsDashGap={0}
-            arcsDashAnimateTime={0}
-
-            // Atmosphere
-            atmosphereColor="#00d4ff"
-            atmosphereAltitude={0.15}
-
-            // Animation
-            enablePointerInteraction={true}
-            animateIn={true}
-
-            // Particle effects for futuristic trail
-            hexBinPointsData={trailStyle === "futuristic" ? particleData : []}
-            hexBinPointLat="lat"
-            hexBinPointLng="lng"
-            hexBinPointWeight="size"
-            hexBinResolution={4}
-            hexMargin={0.1}
-            hexTopColor={() => `rgba(100, 200, 255, 0.8)`}
-            hexSideColor={() => `rgba(50, 150, 255, 0.4)`}
-            hexAltitude={0.01}
-
-            // Labels for major cities (optional)
-            labelsData={[
-              { lat: 40.7128, lng: -74.0060, text: 'New York', size: 0.5 },
-              { lat: 51.5074, lng: -0.1278, text: 'London', size: 0.5 },
-              { lat: 35.6762, lng: 139.6503, text: 'Tokyo', size: 0.5 },
-              { lat: -33.8688, lng: 151.2093, text: 'Sydney', size: 0.5 }
-            ]}
-            labelLat="lat"
-            labelLng="lng"
-            labelText="text"
-            labelSize="size"
-            labelColor={() => "#ffffff"}
-            labelResolution={2}
-          />
-        )}
-
-        {/* Fullscreen overlay controls */}
-        {isFullscreen && (
-          <div className="absolute top-4 right-4 z-60">
-            <button
-              onClick={toggleFullscreen}
-              className="bg-black bg-opacity-70 text-white p-3 rounded-full hover:bg-opacity-90 transition"
-            >
-              <FaCompress size={20} />
-            </button>
-          </div>
-        )}
-
-        {/* ISS Info Overlay */}
-        {position && (
-          <div className="absolute top-4 left-4 bg-black bg-opacity-70 text-white p-4 rounded-lg backdrop-blur-sm">
-            <h4 className="font-bold text-sm mb-2">ISS Live Data</h4>
-            <p className="text-xs">Speed: {issSpeed.toFixed(1)} km/h</p>
-            <p className="text-xs">Altitude: {altitude} km</p>
-            <p className="text-xs">Trajectory Points: {trajectory.length}</p>
-            <p className="text-xs">Trail Style: <span className="text-blue-300">{trailStyle}</span></p>
-            {showTrajectory && (
-              <p className="text-xs text-green-300">Enhanced Trail Active</p>
-            )}
-          </div>
-        )}
       </div>
     </div>
   );
