@@ -125,27 +125,42 @@ export const apiClient = {
   // ISS API methods
   iss: {
     async getPosition() {
-      if (isProduction) {
-        const data = await apiClient.get(DIRECT_API_ENDPOINTS.ISS.POSITION);
-        // Convert wheretheiss.at format to open-notify format
+      try {
+        if (isProduction) {
+          const data = await apiClient.get(DIRECT_API_ENDPOINTS.ISS.POSITION);
+          console.log('ISS Position Data:', data); // Debug log
+          // Convert wheretheiss.at format to open-notify format
+          return {
+            iss_position: {
+              latitude: data.latitude.toString(),
+              longitude: data.longitude.toString()
+            },
+            timestamp: data.timestamp || Math.floor(Date.now() / 1000),
+            message: "success"
+          };
+        }
+
+        return apiClient.get(API_ENDPOINTS.ISS.POSITION);
+      } catch (error) {
+        console.error('ISS Position API Error:', error);
+        // Return mock position data as fallback
         return {
           iss_position: {
-            latitude: data.latitude.toString(),
-            longitude: data.longitude.toString()
+            latitude: "0",
+            longitude: "0"
           },
-          timestamp: data.timestamp || Math.floor(Date.now() / 1000),
-          message: "success"
+          timestamp: Math.floor(Date.now() / 1000),
+          message: "error - using fallback"
         };
       }
-
-      return apiClient.get(API_ENDPOINTS.ISS.POSITION);
     },
 
     async getAstronauts() {
       try {
         if (isProduction) {
           const response = await apiClient.get(DIRECT_API_ENDPOINTS.ISS.ASTRONAUTS);
-          return JSON.parse(response.contents);
+          // The new CORS proxy returns the data directly
+          return response;
         }
 
         return apiClient.get(API_ENDPOINTS.ISS.ASTRONAUTS);
