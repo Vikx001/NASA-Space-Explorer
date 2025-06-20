@@ -59,6 +59,8 @@ const ISSTracker = () => {
       const lng = parseFloat(data.iss_position.longitude);
       const timestamp = data.timestamp || Date.now() / 1000;
 
+      console.log('Parsed coordinates:', { lat, lng, timestamp });
+
       // Calculate speed if we have previous position
       if (position && trajectory.length > 0) {
         const prevPos = trajectory[trajectory.length - 1];
@@ -80,7 +82,7 @@ const ISSTracker = () => {
     } catch (err) {
       console.error("Failed to fetch ISS position", err);
     }
-  }, [position, trajectory, followISS]);
+  }, [followISS]); // Remove position and trajectory from dependencies to prevent infinite loops
 
   // Calculate distance between two points on Earth
   const calculateDistance = (lat1, lon1, lat2, lon2) => {
@@ -96,22 +98,21 @@ const ISSTracker = () => {
 
   const fetchLocationName = async (lat, lng) => {
     try {
-      // Try to get location name from reverse geocoding
-      const response = await fetch(`/api/iss/location?lat=${lat}&lon=${lng}`);
+      // Use a working reverse geocoding service
+      const response = await fetch(`https://api.bigdatacloud.net/data/reverse-geocode-client?latitude=${lat}&longitude=${lng}&localityLanguage=en`);
       if (response.ok) {
         const data = await response.json();
-        if (data.display_name) {
-          // Extract meaningful location info
-          const parts = data.display_name.split(',');
-          const location = parts.slice(0, 3).join(', ').trim();
-          setPlaceName(location || `${Math.abs(lat).toFixed(1)}°${lat >= 0 ? 'N' : 'S'}, ${Math.abs(lng).toFixed(1)}°${lng >= 0 ? 'E' : 'W'}`);
+        if (data.locality || data.city || data.countryName) {
+          const location = [data.locality, data.city, data.countryName].filter(Boolean).slice(0, 2).join(', ') || 'Ocean';
+          setPlaceName(location);
         } else {
           throw new Error('No location data');
         }
       } else {
         throw new Error('Geocoding failed');
       }
-    } catch {
+    } catch (error) {
+      console.log('Location fetch error:', error);
       // Fallback to coordinates
       const latDir = lat >= 0 ? 'N' : 'S';
       const lngDir = lng >= 0 ? 'E' : 'W';
@@ -441,11 +442,11 @@ const ISSTracker = () => {
             <h4 className="font-bold text-sm mb-2">ISS Live Data</h4>
             <p className="text-xs">Speed: {issSpeed.toFixed(1)} km/h</p>
             <p className="text-xs">Altitude: {altitude} km</p>
-            <p className="text-xs">Trajectory Points: {trajectory.length}</p>
-            <p className="text-xs">Trail Style: <span className="text-blue-300">{trailStyle}</span></p>
-            <p className="text-xs">Live Tracking: <span className="text-green-300">Active</span></p>
+            <p className="text-xs">Lat: {position.lat.toFixed(4)}°, Lng: {position.lng.toFixed(4)}°</p>
+            <p className="text-xs">Updates: {trajectory.length}</p>
+            <p className="text-xs">Status: <span className="text-green-300">{isPlaying ? 'Live' : 'Paused'}</span></p>
             {showTrajectory && (
-              <p className="text-xs text-green-300">Enhanced Trail Active</p>
+              <p className="text-xs text-green-300">Trail Active</p>
             )}
           </div>
         )}
