@@ -17,7 +17,17 @@ const NEOTracker = () => {
           start_date: today,
           end_date: today
         });
-        const neos = neoResponse.near_earth_objects[today] || [];
+
+        console.log('NEO Response:', neoResponse); // Debug log
+
+        let neos = [];
+        if (neoResponse.near_earth_objects) {
+          // Try today first, then any available date
+          neos = neoResponse.near_earth_objects[today] ||
+                 Object.values(neoResponse.near_earth_objects)[0] || [];
+        }
+
+        console.log('NEO Data:', neos); // Debug log
         setNeoData(neos);
 
         // Fetch real images for each asteroid

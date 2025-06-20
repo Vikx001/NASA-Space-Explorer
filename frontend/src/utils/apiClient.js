@@ -161,7 +161,7 @@ export const apiClient = {
             latitude: data.latitude.toString(),
             longitude: data.longitude.toString()
           },
-          timestamp: Math.floor(Date.now() / 1000),
+          timestamp: data.timestamp || Math.floor(Date.now() / 1000),
           message: "success"
         };
       }
@@ -170,11 +170,26 @@ export const apiClient = {
     },
 
     async getAstronauts() {
-      if (isProduction) {
-        return apiClient.get(DIRECT_API_ENDPOINTS.ISS.ASTRONAUTS);
-      }
+      try {
+        if (isProduction) {
+          const response = await apiClient.get(DIRECT_API_ENDPOINTS.ISS.ASTRONAUTS);
+          return JSON.parse(response.contents);
+        }
 
-      return apiClient.get(API_ENDPOINTS.ISS.ASTRONAUTS);
+        return apiClient.get(API_ENDPOINTS.ISS.ASTRONAUTS);
+      } catch (error) {
+        console.error('Astronauts API Error:', error);
+        // Fallback to mock data
+        return {
+          people: [
+            { name: "Expedition 70 Commander", craft: "ISS" },
+            { name: "Flight Engineer 1", craft: "ISS" },
+            { name: "Flight Engineer 2", craft: "ISS" }
+          ],
+          number: 3,
+          message: "success"
+        };
+      }
     }
   }
 };
