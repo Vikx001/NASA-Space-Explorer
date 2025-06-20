@@ -6,6 +6,9 @@ import apiClient from "../../utils/apiClient";
 
 const ISSTracker = () => {
   const [position, setPosition] = useState(null);
+  const [realTimePosition, setRealTimePosition] = useState(null); // For smooth interpolation
+  const [lastKnownPosition, setLastKnownPosition] = useState(null);
+  const [nextKnownPosition, setNextKnownPosition] = useState(null);
   const [trajectory, setTrajectory] = useState([]);
   const [placeName, setPlaceName] = useState("");
   const [astronauts, setAstronauts] = useState([]);
@@ -24,10 +27,63 @@ const ISSTracker = () => {
   const [issSpeed, setIssSpeed] = useState(0);
   const [altitude] = useState(408); // Average ISS altitude in km
   const [orbitPeriod] = useState(92.68); // ISS orbital period in minutes
+  const [lastUpdateTime, setLastUpdateTime] = useState(null);
 
   const globeRef = useRef();
+  const animationRef = useRef();
 
+  // Interpolation function for smooth movement
+  const interpolatePosition = (start, end, progress) => {
+    if (!start || !end) return start || end;
 
+    // Handle longitude wrapping (crossing 180/-180 boundary)
+    let lngDiff = end.lng - start.lng;
+    if (lngDiff > 180) lngDiff -= 360;
+    if (lngDiff < -180) lngDiff += 360;
+
+    return {
+      lat: start.lat + (end.lat - start.lat) * progress,
+      lng: start.lng + lngDiff * progress,
+      timestamp: start.timestamp + (end.timestamp - start.timestamp) * progress
+    };
+  };
+
+  // Smooth animation loop
+  useEffect(() => {
+    if (!isPlaying || !lastKnownPosition || !nextKnownPosition) return;
+
+    const animate = () => {
+      const now = Date.now();
+      const updateInterval = 3000; // 3 seconds between API updates
+      const timeSinceLastUpdate = now - lastUpdateTime;
+      const progress = Math.min(timeSinceLastUpdate / updateInterval, 1);
+
+      if (progress < 1) {
+        const interpolatedPos = interpolatePosition(lastKnownPosition, nextKnownPosition, progress);
+        setRealTimePosition(interpolatedPos);
+
+        if (followISS && globeRef.current && interpolatedPos) {
+          globeRef.current.pointOfView({
+            lat: interpolatedPos.lat,
+            lng: interpolatedPos.lng,
+            altitude: 2
+          }, 100); // Faster transition for smooth movement
+        }
+      }
+
+      if (isPlaying) {
+        animationRef.current = requestAnimationFrame(animate);
+      }
+    };
+
+    animationRef.current = requestAnimationFrame(animate);
+
+    return () => {
+      if (animationRef.current) {
+        cancelAnimationFrame(animationRef.current);
+      }
+    };
+  }, [isPlaying, lastKnownPosition, nextKnownPosition, lastUpdateTime, followISS]);
 
   // Initialize globe textures and external links
   useEffect(() => {
@@ -57,7 +113,7 @@ const ISSTracker = () => {
       console.log('ISS Position Data:', data); // Debug log
       const lat = parseFloat(data.iss_position.latitude);
       const lng = parseFloat(data.iss_position.longitude);
-      const timestamp = data.timestamp;
+      const timestamp = data.timestamp || Date.now() / 1000;
 
       // Calculate speed if we have previous position
       if (position && trajectory.length > 0) {
@@ -69,17 +125,21 @@ const ISSTracker = () => {
       }
 
       const newPosition = { lat, lng, timestamp };
+
+      // Set up interpolation system
+      setLastKnownPosition(position); // Previous position becomes last known
+      setNextKnownPosition(newPosition); // New position becomes target
       setPosition(newPosition);
+      setLastUpdateTime(Date.now());
+
       setTrajectory((prev) => [...prev.slice(-50), newPosition]); // Keep more trajectory points
       fetchLocationName(lat, lng);
 
-      if (followISS && globeRef.current) {
-        globeRef.current.pointOfView({ lat, lng, altitude: 2 }, 1000);
-      }
+      // Don't immediately jump to new position, let interpolation handle it
     } catch (err) {
       console.error("Failed to fetch ISS position", err);
     }
-  }, [position, trajectory, followISS]);
+  }, [position, trajectory]);
 
   // Calculate distance between two points on Earth
   const calculateDistance = (lat1, lon1, lat2, lon2) => {
@@ -164,7 +224,7 @@ const ISSTracker = () => {
   useEffect(() => {
     let interval;
     if (isPlaying) {
-      interval = setInterval(fetchPosition, 5000);
+      interval = setInterval(fetchPosition, 3000); // Reduced to 3 seconds for smoother updates
     }
     return () => {
       if (interval) clearInterval(interval);
@@ -250,13 +310,13 @@ const ISSTracker = () => {
           <h3 className="text-xl font-bold mb-4 flex items-center gap-3 text-white">
             <FaSatelliteDish className="text-blue-400" /> Current Position
           </h3>
-          {position && (
+          {(realTimePosition || position) && (
             <>
               <p className="text-sm text-gray-300 mb-2">
-                Latitude: <span className="text-blue-400 font-mono">{position.lat.toFixed(6)}°</span>
+                Latitude: <span className="text-blue-400 font-mono">{(realTimePosition || position).lat.toFixed(6)}°</span>
               </p>
               <p className="text-sm text-gray-300 mb-2">
-                Longitude: <span className="text-blue-400 font-mono">{position.lng.toFixed(6)}°</span>
+                Longitude: <span className="text-blue-400 font-mono">{(realTimePosition || position).lng.toFixed(6)}°</span>
               </p>
               <p className="text-sm text-gray-300 mb-2">
                 Speed: <span className="text-green-400 font-mono">{issSpeed.toFixed(1)} km/h</span>
@@ -390,10 +450,10 @@ const ISSTracker = () => {
             width={isFullscreen ? window.innerWidth - 32 : 800}
             height={isFullscreen ? window.innerHeight - 32 : globeSize}
 
-            // ISS Position Point
-            pointsData={position ? [{
-              lat: position.lat,
-              lng: position.lng,
+            // ISS Position Point - Use interpolated position for smooth movement
+            pointsData={(realTimePosition || position) ? [{
+              lat: (realTimePosition || position).lat,
+              lng: (realTimePosition || position).lng,
               size: 2,
               color: "#ff6b35"
             }] : []}
@@ -435,13 +495,14 @@ const ISSTracker = () => {
         )}
 
         {/* ISS Info Overlay */}
-        {position && (
+        {(realTimePosition || position) && (
           <div className="absolute top-4 left-4 bg-black bg-opacity-70 text-white p-4 rounded-lg backdrop-blur-sm">
             <h4 className="font-bold text-sm mb-2">ISS Live Data</h4>
             <p className="text-xs">Speed: {issSpeed.toFixed(1)} km/h</p>
             <p className="text-xs">Altitude: {altitude} km</p>
             <p className="text-xs">Trajectory Points: {trajectory.length}</p>
             <p className="text-xs">Trail Style: <span className="text-blue-300">{trailStyle}</span></p>
+            <p className="text-xs">Smooth Tracking: <span className="text-green-300">Active</span></p>
             {showTrajectory && (
               <p className="text-xs text-green-300">Enhanced Trail Active</p>
             )}
