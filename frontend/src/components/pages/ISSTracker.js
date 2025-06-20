@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useCallback } from "react";
 import { motion } from "framer-motion";
 import Globe from "react-globe.gl";
 import { FaSatelliteDish, FaUserAstronaut, FaGlobe, FaLockOpen, FaVideo, FaPlay, FaPause, FaExpand, FaCompress } from "react-icons/fa";
@@ -22,8 +22,8 @@ const ISSTracker = () => {
   const [trailStyle, setTrailStyle] = useState("futuristic"); // "classic", "futuristic", "neon", "plasma"
   const [globeSize, setGlobeSize] = useState(600);
   const [issSpeed, setIssSpeed] = useState(0);
-  const [altitude, setAltitude] = useState(408); // Average ISS altitude in km
-  const [orbitPeriod, setOrbitPeriod] = useState(92.68); // ISS orbital period in minutes
+  const [altitude] = useState(408); // Average ISS altitude in km
+  const [orbitPeriod] = useState(92.68); // ISS orbital period in minutes
 
   const globeRef = useRef();
 
@@ -51,7 +51,7 @@ const ISSTracker = () => {
     initializeResources();
   }, []);
 
-  const fetchPosition = async () => {
+  const fetchPosition = useCallback(async () => {
     try {
       const data = await apiClient.iss.getPosition();
       console.log('ISS Position Data:', data); // Debug log
@@ -79,7 +79,7 @@ const ISSTracker = () => {
     } catch (err) {
       console.error("Failed to fetch ISS position", err);
     }
-  };
+  }, [position, trajectory, followISS]);
 
   // Calculate distance between two points on Earth
   const calculateDistance = (lat1, lon1, lat2, lon2) => {
@@ -95,12 +95,26 @@ const ISSTracker = () => {
 
   const fetchLocationName = async (lat, lng) => {
     try {
-      // Use a simple location description based on coordinates
+      // Try to get location name from reverse geocoding
+      const response = await fetch(`/api/iss/location?lat=${lat}&lon=${lng}`);
+      if (response.ok) {
+        const data = await response.json();
+        if (data.display_name) {
+          // Extract meaningful location info
+          const parts = data.display_name.split(',');
+          const location = parts.slice(0, 3).join(', ').trim();
+          setPlaceName(location || `${Math.abs(lat).toFixed(1)}°${lat >= 0 ? 'N' : 'S'}, ${Math.abs(lng).toFixed(1)}°${lng >= 0 ? 'E' : 'W'}`);
+        } else {
+          throw new Error('No location data');
+        }
+      } else {
+        throw new Error('Geocoding failed');
+      }
+    } catch {
+      // Fallback to coordinates
       const latDir = lat >= 0 ? 'N' : 'S';
       const lngDir = lng >= 0 ? 'E' : 'W';
       setPlaceName(`${Math.abs(lat).toFixed(1)}°${latDir}, ${Math.abs(lng).toFixed(1)}°${lngDir}`);
-    } catch {
-      setPlaceName("Unknown Area");
     }
   };
 
@@ -145,19 +159,9 @@ const ISSTracker = () => {
   useEffect(() => {
     fetchPosition();
     fetchAstronauts();
+  }, [fetchPosition]);
 
-    // Add some initial mock trajectory points for testing trail
-    if (trajectory.length === 0) {
-      const mockTrajectory = [
-        { lat: 25.7617, lng: -80.1918, timestamp: Date.now() - 20000 },
-        { lat: 26.7617, lng: -79.1918, timestamp: Date.now() - 15000 },
-        { lat: 27.7617, lng: -78.1918, timestamp: Date.now() - 10000 },
-        { lat: 28.7617, lng: -77.1918, timestamp: Date.now() - 5000 }
-      ];
-      setTrajectory(mockTrajectory);
-      console.log('Added mock trajectory points for trail testing:', mockTrajectory.length);
-    }
-
+  useEffect(() => {
     let interval;
     if (isPlaying) {
       interval = setInterval(fetchPosition, 5000);
@@ -165,7 +169,7 @@ const ISSTracker = () => {
     return () => {
       if (interval) clearInterval(interval);
     };
-  }, [followISS, isPlaying]);
+  }, [isPlaying, fetchPosition]);
 
   const toggleTexture = () => {
     if (globeTextures.night && globeTextures.day) {
@@ -232,15 +236,7 @@ const ISSTracker = () => {
     lastArc: arcsData[arcsData.length - 1]
   });
 
-  // Additional particle effects for futuristic trail
-  const particleData = trailStyle === "futuristic" && trajectory.length > 5
-    ? trajectory.slice(-10).map((pos, i) => ({
-        lat: pos.lat + (Math.random() - 0.5) * 0.1,
-        lng: pos.lng + (Math.random() - 0.5) * 0.1,
-        size: Math.random() * 0.3 + 0.1,
-        color: `rgba(${100 + Math.random() * 155}, ${200 + Math.random() * 55}, 255, ${Math.random() * 0.8 + 0.2})`,
-      }))
-    : [];
+
 
   return (
     <div className="p-6 bg-black text-white min-h-screen font-nasa relative">
@@ -398,14 +394,14 @@ const ISSTracker = () => {
             pointsData={position ? [{
               lat: position.lat,
               lng: position.lng,
-              size: 1,
+              size: 2,
               color: "#ff6b35"
             }] : []}
             pointLat="lat"
             pointLng="lng"
             pointColor="color"
-            pointAltitude={0.02}
-            pointRadius={1}
+            pointAltitude={0.05}
+            pointRadius={2}
 
             // ISS Trail - SIMPLIFIED
             arcsData={arcsData}
