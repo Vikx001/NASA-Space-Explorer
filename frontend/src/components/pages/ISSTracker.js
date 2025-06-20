@@ -18,7 +18,7 @@ const ISSTracker = () => {
   const [externalLinks, setExternalLinks] = useState({});
   const [isPlaying, setIsPlaying] = useState(true);
   const [isFullscreen, setIsFullscreen] = useState(false);
-  const [showTrajectory, setShowTrajectory] = useState(true);
+  const [showTrajectory, setShowTrajectory] = useState(false);
   const [trailStyle, setTrailStyle] = useState("futuristic");
   const [globeSize, setGlobeSize] = useState(600);
   const [issSpeed, setIssSpeed] = useState(0);
@@ -404,8 +404,8 @@ const ISSTracker = () => {
             pointAltitude={0.05}
             pointRadius={2}
 
-            // ISS Trail - SIMPLIFIED
-            arcsData={arcsData}
+            // ISS Trail - Only show if enabled
+            arcsData={showTrajectory ? arcsData : []}
             arcStartLat="startLat"
             arcStartLng="startLng"
             arcEndLat="endLat"
