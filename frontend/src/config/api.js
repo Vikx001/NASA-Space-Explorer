@@ -22,7 +22,7 @@ export const DIRECT_API_ENDPOINTS = {
   },
   ISS: {
     POSITION: 'https://api.wheretheiss.at/v1/satellites/25544',
-    ASTRONAUTS: 'http://api.open-notify.org/astros.json'
+    ASTRONAUTS: 'https://corsproxy.io/?http://api.open-notify.org/astros.json'
   }
 };
 

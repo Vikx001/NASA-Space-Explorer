@@ -9,7 +9,7 @@ const StarChart = () => {
     const initializeLinks = () => {
       // Set default external links
       const defaultLinks = {
-        star_map: 'https://stellarium-web.org/',
+        stellarium: 'https://stellarium-web.org/',
         constellation_guide: 'https://www.constellation-guide.com/',
         astronomy_tools: 'https://www.timeanddate.com/astronomy/'
       };

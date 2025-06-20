@@ -9,9 +9,10 @@ const SolarSystemExplorer = () => {
 
   useEffect(() => {
     const initializeLinks = () => {
-      // Set default external links
+      // Set working external links
       const defaultLinks = {
-        nasa_eyes: 'https://eyes.nasa.gov/apps/solar-system/',
+        nasaEyes: 'https://eyes.nasa.gov/apps/solar-system/',
+        nasaEyesInfo: 'https://eyes.nasa.gov/',
         planetary_society: 'https://www.planetary.org/explore/space-topics/solar-system',
         nasa_solar_system: 'https://solarsystem.nasa.gov/'
       };
