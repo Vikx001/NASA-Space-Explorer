@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import { FaRocket, FaCamera, FaCalendarAlt, FaSpinner } from "react-icons/fa";
 
 const MarsRoverGallery = () => {
@@ -7,6 +7,7 @@ const MarsRoverGallery = () => {
   const [loading, setLoading] = useState(true);
   const [selectedRover, setSelectedRover] = useState('perseverance');
   const [error, setError] = useState(null);
+  const [selectedPhoto, setSelectedPhoto] = useState(null);
 
   const rovers = [
     { name: 'perseverance', displayName: 'Perseverance', status: 'Active' },
@@ -26,8 +27,8 @@ const MarsRoverGallery = () => {
       if (isActive) {
         url = `https://api.nasa.gov/mars-photos/api/v1/rovers/${rover}/latest_photos?api_key=uGD2FnbivVtg0PN49UuX0FcK0XtfvB6Mz1wabstp`;
       } else {
-        // For inactive rovers, use a specific sol that had good photos
-        const sol = rover === 'opportunity' ? 5000 : 2000;
+        // For inactive rovers, use sols that had good photos
+        const sol = rover === 'opportunity' ? 1000 : 500; // Better sols with more photos
         url = `https://api.nasa.gov/mars-photos/api/v1/rovers/${rover}/photos?sol=${sol}&api_key=uGD2FnbivVtg0PN49UuX0FcK0XtfvB6Mz1wabstp`;
       }
 
@@ -136,10 +137,11 @@ const MarsRoverGallery = () => {
             {photos.map((photo, index) => (
               <motion.div
                 key={photo.id}
-                className="bg-gray-800 rounded-lg overflow-hidden shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105"
+                className="bg-gray-800 rounded-lg overflow-hidden shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105 cursor-pointer"
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: index * 0.1 }}
+                onClick={() => setSelectedPhoto(photo)}
               >
                 <div className="relative">
                   <img
@@ -184,6 +186,72 @@ const MarsRoverGallery = () => {
             <p className="text-gray-400 text-xl">No photos available for {selectedRover}</p>
           </div>
         )}
+
+        {/* Photo Modal - Same as APOD */}
+        <AnimatePresence>
+          {selectedPhoto && (
+            <motion.div
+              className="fixed inset-0 bg-black bg-opacity-80 backdrop-blur-sm flex items-center justify-center z-50 p-4"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setSelectedPhoto(null)}
+            >
+              <motion.div
+                className="bg-gray-900 rounded-lg max-w-4xl w-full p-4 relative"
+                initial={{ scale: 0.8, opacity: 0 }}
+                animate={{ scale: 1, opacity: 1 }}
+                exit={{ scale: 0.8, opacity: 0 }}
+                onClick={(e) => e.stopPropagation()}
+              >
+                <button
+                  className="absolute top-2 right-3 text-white text-xl hover:text-gray-300 transition"
+                  onClick={() => setSelectedPhoto(null)}
+                >
+                  &times;
+                </button>
+
+                <img
+                  src={selectedPhoto.img_src}
+                  alt={`Mars surface captured by ${selectedPhoto.rover.name}`}
+                  className="rounded-lg mb-4 max-h-96 w-full object-contain"
+                />
+
+                <div className="text-white">
+                  <h2 className="text-xl font-bold mb-2 flex items-center gap-2">
+                    <FaRocket className="text-red-400" />
+                    {selectedPhoto.rover.name} - Sol {selectedPhoto.sol}
+                  </h2>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+                    <div>
+                      <p className="text-gray-400 mb-1">
+                        <span className="font-medium text-white">Earth Date:</span> {selectedPhoto.earth_date}
+                      </p>
+                      <p className="text-gray-400 mb-1">
+                        <span className="font-medium text-white">Camera:</span> {selectedPhoto.camera.full_name}
+                      </p>
+                      <p className="text-gray-400">
+                        <span className="font-medium text-white">Camera Type:</span> {selectedPhoto.camera.name}
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-gray-400 mb-1">
+                        <span className="font-medium text-white">Rover Status:</span> {selectedPhoto.rover.status}
+                      </p>
+                      <p className="text-gray-400 mb-1">
+                        <span className="font-medium text-white">Landing Date:</span> {selectedPhoto.rover.landing_date}
+                      </p>
+                      <p className="text-gray-400">
+                        <span className="font-medium text-white">Launch Date:</span> {selectedPhoto.rover.launch_date}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </motion.div>
+            </motion.div>
+          )}
+        </AnimatePresence>
       </div>
     </div>
   );
