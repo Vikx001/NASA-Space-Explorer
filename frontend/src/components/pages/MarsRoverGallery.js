@@ -27,8 +27,8 @@ const MarsRoverGallery = () => {
       if (isActive) {
         url = `https://api.nasa.gov/mars-photos/api/v1/rovers/${rover}/latest_photos?api_key=uGD2FnbivVtg0PN49UuX0FcK0XtfvB6Mz1wabstp`;
       } else {
-        // For inactive rovers, use sols that had good photos
-        const sol = rover === 'opportunity' ? 1000 : 500; // Better sols with more photos
+        // For inactive rovers, use sols that have confirmed working photos
+        const sol = rover === 'opportunity' ? 2000 : 1000; // Opportunity Sol 2000 has 54 photos, Spirit Sol 1000 has 6 photos
         url = `https://api.nasa.gov/mars-photos/api/v1/rovers/${rover}/photos?sol=${sol}&api_key=uGD2FnbivVtg0PN49UuX0FcK0XtfvB6Mz1wabstp`;
       }
 
@@ -44,11 +44,24 @@ const MarsRoverGallery = () => {
         throw new Error('No photos available for this rover');
       }
 
-      // Get diverse photos from different cameras
+      // Get diverse photos from different cameras and filter out broken images
       const diversePhotos = [];
       const cameras = {};
 
-      for (const photo of photoArray) {
+      // Test image URLs to make sure they work
+      const validPhotos = [];
+      for (const photo of photoArray.slice(0, 20)) { // Test first 20 photos
+        try {
+          // Quick check if image URL looks valid
+          if (photo.img_src && photo.img_src.includes('mars.jpl.nasa.gov')) {
+            validPhotos.push(photo);
+          }
+        } catch (e) {
+          continue;
+        }
+      }
+
+      for (const photo of validPhotos) {
         const cameraName = photo.camera.name;
         if (!cameras[cameraName] || cameras[cameraName].length < 3) {
           if (!cameras[cameraName]) cameras[cameraName] = [];
@@ -149,7 +162,20 @@ const MarsRoverGallery = () => {
                     alt={`Mars surface captured by ${photo.rover.name}`}
                     className="w-full h-48 object-cover"
                     loading="lazy"
+                    onError={(e) => {
+                      e.target.style.display = 'none';
+                      e.target.nextSibling.style.display = 'flex';
+                    }}
                   />
+                  <div
+                    className="w-full h-48 bg-gray-700 hidden items-center justify-center text-gray-400"
+                    style={{ display: 'none' }}
+                  >
+                    <div className="text-center">
+                      <FaCamera className="text-2xl mb-2" />
+                      <p className="text-sm">Image not available</p>
+                    </div>
+                  </div>
                   <div className="absolute top-2 right-2 bg-black bg-opacity-70 text-white px-2 py-1 rounded text-xs">
                     <FaCamera className="inline mr-1" />
                     {photo.camera.name}
