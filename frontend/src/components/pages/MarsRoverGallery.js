@@ -20,55 +20,60 @@ const MarsRoverGallery = () => {
     setLoading(true);
     setError(null);
     try {
-      // Try latest photos first for active rovers
-      const isActive = rover === 'perseverance' || rover === 'curiosity';
       let url;
+      let photoArray = [];
 
-      if (isActive) {
-        url = `https://api.nasa.gov/mars-photos/api/v1/rovers/${rover}/latest_photos?api_key=uGD2FnbivVtg0PN49UuX0FcK0XtfvB6Mz1wabstp`;
+      // Different strategies for different rovers
+      if (rover === 'perseverance' || rover === 'curiosity') {
+        // For active rovers, try latest photos first, then fallback to specific sol
+        try {
+          url = `https://api.nasa.gov/mars-photos/api/v1/rovers/${rover}/latest_photos?api_key=uGD2FnbivVtg0PN49UuX0FcK0XtfvB6Mz1wabstp`;
+          const response = await fetch(url);
+          const data = await response.json();
+          photoArray = data.latest_photos || [];
+        } catch (e) {
+          console.log('Latest photos failed, trying specific sol...');
+        }
+
+        // Fallback to specific sol if latest photos failed
+        if (photoArray.length === 0) {
+          const sol = rover === 'perseverance' ? 1000 : 3000;
+          url = `https://api.nasa.gov/mars-photos/api/v1/rovers/${rover}/photos?sol=${sol}&api_key=uGD2FnbivVtg0PN49UuX0FcK0XtfvB6Mz1wabstp`;
+          const response = await fetch(url);
+          const data = await response.json();
+          photoArray = data.photos || [];
+        }
       } else {
-        // For inactive rovers, use sols that have confirmed working photos
-        const sol = rover === 'opportunity' ? 2000 : 1000; // Opportunity Sol 2000 has 54 photos, Spirit Sol 1000 has 6 photos
+        // For inactive rovers, use specific sols
+        const sol = rover === 'opportunity' ? 2000 : 1000;
         url = `https://api.nasa.gov/mars-photos/api/v1/rovers/${rover}/photos?sol=${sol}&api_key=uGD2FnbivVtg0PN49UuX0FcK0XtfvB6Mz1wabstp`;
+        const response = await fetch(url);
+        const data = await response.json();
+        photoArray = data.photos || [];
       }
-
-      const response = await fetch(url);
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-
-      const data = await response.json();
-      const photoArray = data.latest_photos || data.photos || [];
 
       if (photoArray.length === 0) {
-        throw new Error('No photos available for this rover');
+        throw new Error(`No photos available for ${rover}`);
       }
 
-      // Get diverse photos from different cameras and filter out broken images
+      // Get diverse photos from different cameras
       const diversePhotos = [];
       const cameras = {};
 
-      // Test image URLs to make sure they work
-      const validPhotos = [];
-      for (const photo of photoArray.slice(0, 20)) { // Test first 20 photos
-        try {
-          // Quick check if image URL looks valid
-          if (photo.img_src && photo.img_src.includes('mars.jpl.nasa.gov')) {
-            validPhotos.push(photo);
+      for (const photo of photoArray.slice(0, 30)) { // Check first 30 photos
+        if (photo.img_src) {
+          const cameraName = photo.camera.name;
+          if (!cameras[cameraName] || cameras[cameraName].length < 3) {
+            if (!cameras[cameraName]) cameras[cameraName] = [];
+            cameras[cameraName].push(photo);
+            diversePhotos.push(photo);
+            if (diversePhotos.length >= 12) break;
           }
-        } catch (e) {
-          continue;
         }
       }
 
-      for (const photo of validPhotos) {
-        const cameraName = photo.camera.name;
-        if (!cameras[cameraName] || cameras[cameraName].length < 3) {
-          if (!cameras[cameraName]) cameras[cameraName] = [];
-          cameras[cameraName].push(photo);
-          diversePhotos.push(photo);
-          if (diversePhotos.length >= 12) break;
-        }
+      if (diversePhotos.length === 0) {
+        throw new Error(`No valid photos found for ${rover}`);
       }
 
       setPhotos(diversePhotos);
