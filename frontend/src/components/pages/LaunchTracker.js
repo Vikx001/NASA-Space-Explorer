@@ -5,13 +5,34 @@ import apiClient from "../../utils/apiClient";
 const LaunchTracker = () => {
   const [launches, setLaunches] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [showRecent, setShowRecent] = useState(false);
 
   useEffect(() => {
     const fetchLaunches = async () => {
       try {
-        const data = await apiClient.spacex.getLaunches('upcoming');
-        const sorted = data.sort((a, b) => new Date(a.date_utc) - new Date(b.date_utc));
-        setLaunches(sorted.slice(0, 5));
+        // Try upcoming first
+        let data = await apiClient.spacex.getLaunches('upcoming');
+        console.log('Upcoming launches:', data);
+
+        // Filter out old "upcoming" launches (anything before 2024)
+        const currentYear = new Date().getFullYear();
+        const validUpcoming = data.filter(launch => {
+          const launchYear = new Date(launch.date_utc).getFullYear();
+          return launchYear >= currentYear;
+        });
+
+        if (validUpcoming.length === 0) {
+          // If no valid upcoming launches, show recent past launches
+          console.log('No valid upcoming launches, fetching recent launches...');
+          data = await apiClient.spacex.getLaunches('past');
+          const sorted = data.sort((a, b) => new Date(b.date_utc) - new Date(a.date_utc));
+          setLaunches(sorted.slice(0, 5));
+          setShowRecent(true);
+        } else {
+          const sorted = validUpcoming.sort((a, b) => new Date(a.date_utc) - new Date(b.date_utc));
+          setLaunches(sorted.slice(0, 5));
+          setShowRecent(false);
+        }
       } catch (err) {
         console.error("Error fetching launches:", err);
       } finally {
@@ -24,11 +45,18 @@ const LaunchTracker = () => {
   return (
     <div className="p-4">
       <h2
-        className="text-3xl font-bold mb-6 tracking-wide text-center"
+        className="text-3xl font-bold mb-4 tracking-wide text-center"
         style={{ fontFamily: "'Orbitron', sans-serif" }}
       >
-        Upcoming SpaceX Launches
+        {showRecent ? 'Recent SpaceX Launches' : 'Upcoming SpaceX Launches'}
       </h2>
+      {showRecent && (
+        <div className="text-center mb-4 p-3 bg-yellow-900 bg-opacity-50 rounded-lg border border-yellow-600">
+          <p className="text-yellow-300 text-sm">
+            ⚠️ SpaceX API data appears outdated. Showing recent launches instead.
+          </p>
+        </div>
+      )}
       {loading ? (
         <p className="text-gray-400 text-center">Loading launches...</p>
       ) : (
@@ -46,21 +74,36 @@ const LaunchTracker = () => {
               )}
               <h3 className="text-2xl font-semibold mb-2 text-white">{launch.name}</h3>
               <p className="text-sm text-gray-400 mb-2">
-                {new Date(launch.date_utc).toLocaleString()}
+                📅 {new Date(launch.date_utc).toLocaleDateString()} at {new Date(launch.date_utc).toLocaleTimeString()}
+              </p>
+              <p className="text-sm text-blue-400 mb-2">
+                🚀 Flight #{launch.flight_number} • {launch.success === null ? (showRecent ? 'Completed' : 'Scheduled') : (launch.success ? 'Success' : 'Failed')}
               </p>
               <p className="text-gray-300 mb-4">
                 {launch.details ? launch.details : "No mission details available."}
               </p>
-              {launch.links.webcast && (
-                <a
-                  href={launch.links.webcast}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="inline-block px-4 py-2 text-sm font-medium bg-cyan-600 text-white rounded hover:bg-cyan-700 transition"
-                >
-                  Watch Launch
-                </a>
-              )}
+              <div className="flex gap-2">
+                {launch.links?.webcast && (
+                  <a
+                    href={launch.links.webcast}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-block px-4 py-2 text-sm font-medium bg-red-600 text-white rounded hover:bg-red-700 transition"
+                  >
+                    🎥 Watch
+                  </a>
+                )}
+                {launch.links?.wikipedia && (
+                  <a
+                    href={launch.links.wikipedia}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-block px-4 py-2 text-sm font-medium bg-blue-600 text-white rounded hover:bg-blue-700 transition"
+                  >
+                    📖 Info
+                  </a>
+                )}
+              </div>
             </motion.div>
           ))}
         </div>
