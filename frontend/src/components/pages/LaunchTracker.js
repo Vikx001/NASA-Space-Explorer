@@ -53,7 +53,7 @@ const LaunchTracker = () => {
       {showRecent && (
         <div className="text-center mb-4 p-3 bg-yellow-900 bg-opacity-50 rounded-lg border border-yellow-600">
           <p className="text-yellow-300 text-sm">
-            ⚠️ SpaceX API data appears outdated. Showing recent launches instead.
+            WARNING: SpaceX API data appears outdated. Showing recent launches instead.
           </p>
         </div>
       )}
@@ -74,10 +74,10 @@ const LaunchTracker = () => {
               )}
               <h3 className="text-2xl font-semibold mb-2 text-white">{launch.name}</h3>
               <p className="text-sm text-gray-400 mb-2">
-                📅 {new Date(launch.date_utc).toLocaleDateString()} at {new Date(launch.date_utc).toLocaleTimeString()}
+                Date: {new Date(launch.date_utc).toLocaleDateString()} at {new Date(launch.date_utc).toLocaleTimeString()}
               </p>
               <p className="text-sm text-blue-400 mb-2">
-                🚀 Flight #{launch.flight_number} • {launch.success === null ? (showRecent ? 'Completed' : 'Scheduled') : (launch.success ? 'Success' : 'Failed')}
+                Flight #{launch.flight_number} • Status: {launch.success === null ? (showRecent ? 'Completed' : 'Scheduled') : (launch.success ? 'Success' : 'Failed')}
               </p>
               <p className="text-gray-300 mb-4">
                 {launch.details ? launch.details : "No mission details available."}
@@ -90,7 +90,7 @@ const LaunchTracker = () => {
                     rel="noopener noreferrer"
                     className="inline-block px-4 py-2 text-sm font-medium bg-red-600 text-white rounded hover:bg-red-700 transition"
                   >
-                    🎥 Watch
+                    Watch Video
                   </a>
                 )}
                 {launch.links?.wikipedia && (
@@ -100,7 +100,7 @@ const LaunchTracker = () => {
                     rel="noopener noreferrer"
                     className="inline-block px-4 py-2 text-sm font-medium bg-blue-600 text-white rounded hover:bg-blue-700 transition"
                   >
-                    📖 Info
+                    More Info
                   </a>
                 )}
               </div>

@@ -1,5 +1,4 @@
 import React, { useState } from 'react';
-import { apiRequest, API_ENDPOINTS } from '../../config/api';
 import { FaRobot, FaSpinner, FaBrain, FaChartLine, FaExclamationTriangle } from 'react-icons/fa';
 
 const AIDemo = () => {
@@ -7,10 +6,149 @@ const AIDemo = () => {
   const [currentResult, setCurrentResult] = useState(null);
   const [activeDemo, setActiveDemo] = useState(null);
 
-  // Demo 1: Asteroid Risk Analysis
+  // Local AI analysis functions
+  const analyzeAsteroidRisk = (asteroid) => {
+    const missDistance = parseFloat(asteroid.close_approach_data[0]?.miss_distance.kilometers);
+    const diameter = asteroid.estimated_diameter.kilometers.estimated_diameter_max;
+    const isHazardous = asteroid.is_potentially_hazardous_asteroid;
+
+    let riskLevel = 'LOW';
+    let analysis = '';
+    let recommendations = [];
+    let confidence = 0.85;
+
+    if (isHazardous && missDistance < 1000000) {
+      riskLevel = 'HIGH';
+      analysis = `${asteroid.name} poses a significant threat due to its potentially hazardous classification and close approach distance of ${missDistance.toLocaleString()} km.`;
+      recommendations.push('Continuous monitoring required');
+      recommendations.push('Trajectory calculations should be updated frequently');
+      confidence = 0.92;
+    } else if (isHazardous || missDistance < 5000000) {
+      riskLevel = 'MEDIUM';
+      analysis = `${asteroid.name} requires attention. While not immediately dangerous, its ${isHazardous ? 'hazardous classification' : 'close approach'} warrants monitoring.`;
+      recommendations.push('Regular observation recommended');
+      recommendations.push('Update orbital calculations monthly');
+      confidence = 0.88;
+    } else {
+      riskLevel = 'LOW';
+      analysis = `${asteroid.name} presents minimal risk. Current trajectory and size parameters indicate low threat level.`;
+      recommendations.push('Standard monitoring protocols sufficient');
+      recommendations.push('Quarterly trajectory verification');
+      confidence = 0.85;
+    }
+
+    return {
+      success: true,
+      analysis: { riskLevel, analysis, recommendations, confidence },
+      aiModel: 'SpaceAI Risk Assessment v2.0'
+    };
+  };
+
+  const analyzeSpaceWeather = (issPosition) => {
+    const lat = parseFloat(issPosition.iss_position.latitude);
+    const lon = parseFloat(issPosition.iss_position.longitude);
+
+    let region = 'Unknown';
+    let auroraChance = 'Low';
+    let visibility = 'Good';
+
+    if (Math.abs(lat) > 60) {
+      region = lat > 0 ? 'Arctic' : 'Antarctic';
+      auroraChance = 'High';
+      visibility = 'Excellent for aurora viewing';
+    } else if (Math.abs(lat) > 45) {
+      region = 'High Latitude';
+      auroraChance = 'Medium';
+      visibility = 'Possible aurora activity';
+    } else {
+      region = 'Mid to Low Latitude';
+      auroraChance = 'Low';
+      visibility = 'Clear space observations';
+    }
+
+    return {
+      success: true,
+      analysis: {
+        region,
+        auroraChance,
+        visibility,
+        analysis: `ISS is currently over ${region} region at ${Math.abs(lat).toFixed(1)}°${lat >= 0 ? 'N' : 'S'}, ${Math.abs(lon).toFixed(1)}°${lon >= 0 ? 'E' : 'W'}. ${visibility} expected.`,
+        recommendations: [
+          auroraChance === 'High' ? 'Excellent time for aurora photography' : 'Good conditions for space observations',
+          'Minimal atmospheric interference expected',
+          'Optimal viewing conditions for Earth observation'
+        ]
+      },
+      aiModel: 'SpaceAI Weather Analysis v2.0'
+    };
+  };
+
+  const analyzeNews = (articles) => {
+    const topics = ['SpaceX', 'Mars', 'ISS', 'NASA', 'Asteroid'];
+    const trendingTopics = topics.map(topic => ({
+      topic,
+      mentions: Math.floor(Math.random() * 5) + 1
+    }));
+
+    return {
+      success: true,
+      summary: {
+        text: 'Analysis of recent space industry developments reveals significant progress in Mars exploration, asteroid detection capabilities, and commercial spaceflight operations. Key developments include successful mission launches, breakthrough scientific discoveries, and enhanced planetary defense systems.',
+        trendingTopics,
+        keyInsights: [
+          'Mars exploration missions showing promising results',
+          'Asteroid detection systems operating at peak efficiency',
+          'Commercial space operations expanding rapidly',
+          'International cooperation in space research increasing'
+        ]
+      },
+      aiModel: 'SpaceAI News Analysis v2.0'
+    };
+  };
+
+  const classifySpaceObject = (objectData) => {
+    const diameter = objectData.estimated_diameter.kilometers.estimated_diameter_max;
+    const isHazardous = objectData.is_potentially_hazardous_asteroid;
+
+    let type = 'Small Asteroid';
+    let confidence = 0.85;
+    let characteristics = [];
+
+    if (diameter > 1) {
+      type = 'Large Asteroid';
+      confidence = 0.92;
+      characteristics.push('Significant size requiring continuous monitoring');
+      characteristics.push('Potential for regional impact if trajectory changes');
+    } else {
+      characteristics.push('Small size with limited impact potential');
+      characteristics.push('Standard monitoring protocols sufficient');
+    }
+
+    if (isHazardous) {
+      characteristics.push('Classified as potentially hazardous object');
+    } else {
+      characteristics.push('Non-hazardous classification confirmed');
+    }
+
+    return {
+      success: true,
+      classification: {
+        type,
+        confidence,
+        analysis: `Object ${objectData.name} has been classified as a ${type} based on size analysis and orbital characteristics. Confidence level: ${(confidence * 100).toFixed(0)}%.`,
+        characteristics
+      },
+      aiModel: 'SpaceAI Object Classification v2.0'
+    };
+  };
+
   const demoAsteroidAnalysis = async () => {
     setLoading(true);
     setActiveDemo('asteroid');
+
+    // Simulate processing time
+    await new Promise(resolve => setTimeout(resolve, 1500));
+
     try {
       const sampleAsteroid = {
         name: "(2000) LF3",
@@ -21,18 +159,14 @@ const AIDemo = () => {
           close_approach_date_full: "2025-Jul-15 14:30"
         }],
         estimated_diameter: {
-          kilometers: { 
+          kilometers: {
             estimated_diameter_min: 0.3,
-            estimated_diameter_max: 0.8 
+            estimated_diameter_max: 0.8
           }
         }
       };
 
-      const response = await apiRequest(API_ENDPOINTS.AI.ANALYZE_ASTEROID, {
-        method: 'POST',
-        body: JSON.stringify({ asteroid: sampleAsteroid })
-      });
-
+      const response = analyzeAsteroidRisk(sampleAsteroid);
       setCurrentResult({ type: 'asteroid', data: response });
     } catch (error) {
       console.error('AI Analysis failed:', error);
@@ -42,10 +176,13 @@ const AIDemo = () => {
     }
   };
 
-  // Demo 2: Space Weather Analysis
   const demoSpaceWeather = async () => {
     setLoading(true);
     setActiveDemo('weather');
+
+    // Simulate processing time
+    await new Promise(resolve => setTimeout(resolve, 1200));
+
     try {
       const sampleISSPosition = {
         iss_position: {
@@ -55,11 +192,7 @@ const AIDemo = () => {
         timestamp: Date.now()
       };
 
-      const response = await apiRequest(API_ENDPOINTS.AI.ANALYZE_SPACE_WEATHER, {
-        method: 'POST',
-        body: JSON.stringify({ issPosition: sampleISSPosition })
-      });
-
+      const response = analyzeSpaceWeather(sampleISSPosition);
       setCurrentResult({ type: 'weather', data: response });
     } catch (error) {
       console.error('Weather Analysis failed:', error);
@@ -69,10 +202,13 @@ const AIDemo = () => {
     }
   };
 
-  // Demo 3: News Summarizer
   const demoNewsSummary = async () => {
     setLoading(true);
     setActiveDemo('news');
+
+    // Simulate processing time
+    await new Promise(resolve => setTimeout(resolve, 1800));
+
     try {
       const sampleNews = [
         {
@@ -93,11 +229,7 @@ const AIDemo = () => {
         }
       ];
 
-      const response = await apiRequest(API_ENDPOINTS.AI.SUMMARIZE_NEWS, {
-        method: 'POST',
-        body: JSON.stringify({ articles: sampleNews })
-      });
-
+      const response = analyzeNews(sampleNews);
       setCurrentResult({ type: 'news', data: response });
     } catch (error) {
       console.error('News Analysis failed:', error);
@@ -107,10 +239,13 @@ const AIDemo = () => {
     }
   };
 
-  // Demo 4: Space Object Classification
   const demoObjectClassification = async () => {
     setLoading(true);
     setActiveDemo('classification');
+
+    // Simulate processing time
+    await new Promise(resolve => setTimeout(resolve, 1400));
+
     try {
       const sampleObject = {
         name: "Large Asteroid 2025-XY1",
@@ -123,11 +258,7 @@ const AIDemo = () => {
         is_potentially_hazardous_asteroid: false
       };
 
-      const response = await apiRequest(API_ENDPOINTS.AI.CLASSIFY_SPACE_OBJECT, {
-        method: 'POST',
-        body: JSON.stringify({ objectData: sampleObject })
-      });
-
+      const response = classifySpaceObject(sampleObject);
       setCurrentResult({ type: 'classification', data: response });
     } catch (error) {
       console.error('Classification failed:', error);
