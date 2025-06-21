@@ -26,6 +26,7 @@ const ISSTracker = () => {
   const [orbitPeriod] = useState(92.68);
 
   const globeRef = useRef();
+  const locationTimeoutRef = useRef();
 
 
 
@@ -73,7 +74,14 @@ const ISSTracker = () => {
       const newPosition = { lat, lng, timestamp };
       setPosition(newPosition);
       setTrajectory((prev) => [...prev.slice(-50), newPosition]);
-      fetchLocationName(lat, lng);
+
+      // Debounce location fetching to avoid too many API calls
+      if (locationTimeoutRef.current) {
+        clearTimeout(locationTimeoutRef.current);
+      }
+      locationTimeoutRef.current = setTimeout(() => {
+        fetchLocationName(lat, lng);
+      }, 1000); // Wait 1 second before fetching location
 
       // Update globe view if following ISS
       if (followISS && globeRef.current) {
@@ -98,22 +106,35 @@ const ISSTracker = () => {
 
   const fetchLocationName = async (lat, lng) => {
     try {
-      // Use a working reverse geocoding service
+      // Use a working reverse geocoding service with current coordinates
       const response = await fetch(`https://api.bigdatacloud.net/data/reverse-geocode-client?latitude=${lat}&longitude=${lng}&localityLanguage=en`);
       if (response.ok) {
         const data = await response.json();
-        if (data.locality || data.city || data.countryName) {
-          const location = [data.locality, data.city, data.countryName].filter(Boolean).slice(0, 2).join(', ') || 'Ocean';
-          setPlaceName(location);
+        console.log('Location API response:', data);
+
+        // Prioritize the most specific location available
+        let location = '';
+        if (data.city) {
+          location = data.city;
+          if (data.countryName) location += `, ${data.countryName}`;
+        } else if (data.locality) {
+          location = data.locality;
+          if (data.countryName) location += `, ${data.countryName}`;
+        } else if (data.countryName) {
+          location = data.countryName;
+        } else if (data.ocean) {
+          location = data.ocean;
         } else {
-          throw new Error('No location data');
+          location = 'Open Ocean';
         }
+
+        setPlaceName(location);
       } else {
         throw new Error('Geocoding failed');
       }
     } catch (error) {
       console.log('Location fetch error:', error);
-      // Fallback to coordinates
+      // Fallback to coordinates only
       const latDir = lat >= 0 ? 'N' : 'S';
       const lngDir = lng >= 0 ? 'E' : 'W';
       setPlaceName(`${Math.abs(lat).toFixed(1)}°${latDir}, ${Math.abs(lng).toFixed(1)}°${lngDir}`);
