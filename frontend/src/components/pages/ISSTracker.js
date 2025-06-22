@@ -15,8 +15,6 @@ import apiClient from "../../utils/apiClient";
 
 const ISSTracker = () => {
   const globeRef = useRef();
-  const locationTimeoutRef = useRef();
-
   const [position, setPosition] = useState(null);
   const [trajectory, setTrajectory] = useState([]);
   const [placeName, setPlaceName] = useState("");
@@ -24,7 +22,6 @@ const ISSTracker = () => {
   const [followISS, setFollowISS] = useState(true);
   const [isPlaying, setIsPlaying] = useState(true);
   const [showTrajectory, setShowTrajectory] = useState(false);
-  const [trailStyle, setTrailStyle] = useState("futuristic");
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [globeSize, setGlobeSize] = useState(600);
   const [issSpeed, setIssSpeed] = useState(0);
@@ -37,18 +34,14 @@ const ISSTracker = () => {
   };
   const [currentTexture, setCurrentTexture] = useState(textures.night);
 
-  const externalLinks = {
-    live: "https://www.nasa.gov/live"
-  };
-
   const calculateDistance = (lat1, lon1, lat2, lon2) => {
     const R = 6371000;
     const toRad = (d) => (d * Math.PI) / 180;
     const dLat = toRad(lat2 - lat1);
     const dLon = toRad(lon2 - lon1);
-    const a =
-      Math.sin(dLat / 2) ** 2 +
-      Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLon / 2) ** 2;
+    const a = Math.sin(dLat / 2) ** 2 +
+              Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) *
+              Math.sin(dLon / 2) ** 2;
     const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
     return R * c;
   };
@@ -59,9 +52,7 @@ const ISSTracker = () => {
         `https://api.bigdatacloud.net/data/reverse-geocode-client?latitude=${lat}&longitude=${lng}&localityLanguage=en`
       );
       const data = await res.json();
-
-      const location =
-        data.city || data.locality || data.countryName || data.ocean || "Ocean";
+      const location = data.city || data.locality || data.countryName || data.ocean || "Ocean";
       setPlaceName(location);
     } catch {
       const latDir = lat >= 0 ? "N" : "S";
@@ -89,7 +80,7 @@ const ISSTracker = () => {
       if (position) {
         const last = trajectory[trajectory.length - 1];
         const dist = calculateDistance(last.lat, last.lng, lat, lng);
-        const speed = (dist / 2) * 3.6; // in km/h
+        const speed = (dist / 2) * 3.6;
         setIssSpeed(speed);
       }
 
@@ -97,24 +88,11 @@ const ISSTracker = () => {
       setPosition(newPos);
       setTrajectory((prev) => [...prev.slice(-50), newPos]);
 
-      if (globeRef.current) {
-        globeRef.current.pointsData([
-          {
-            lat,
-            lng,
-            size: 2,
-            color: "#ff6b35"
-          }
-        ]);
-        if (followISS) {
-          globeRef.current.pointOfView({ lat, lng, altitude: 2 }, 500);
-        }
+      if (followISS && globeRef.current) {
+        globeRef.current.pointOfView({ lat, lng, altitude: 2 }, 500);
       }
 
-      if (locationTimeoutRef.current) clearTimeout(locationTimeoutRef.current);
-      locationTimeoutRef.current = setTimeout(() => {
-        fetchLocationName(lat, lng);
-      }, 1000);
+      fetchLocationName(lat, lng);
     } catch (err) {
       console.error("ISS fetch failed:", err);
     }
@@ -150,19 +128,8 @@ const ISSTracker = () => {
       })
     : [];
 
-  const toggleTexture = () => {
-    setCurrentTexture((prev) =>
-      prev === textures.night ? textures.day : textures.night
-    );
-  };
-
-  const toggleFullscreen = () => {
-    setIsFullscreen(!isFullscreen);
-    setGlobeSize(isFullscreen ? 600 : 800);
-  };
-
   return (
-    <div className="p-6 bg-black text-white font-nasa relative min-h-screen">
+    <div className="p-6 bg-black text-white min-h-screen font-sans">
       <h2 className="text-4xl font-bold mb-6 text-center">ISS Real-Time Tracker</h2>
 
       <div className="grid md:grid-cols-3 gap-6 mb-6">
@@ -197,26 +164,26 @@ const ISSTracker = () => {
             <button onClick={() => setIsPlaying((p) => !p)} className="btn">
               {isPlaying ? <FaPause /> : <FaPlay />} {isPlaying ? "Pause" : "Play"}
             </button>
-            <button onClick={toggleTexture} className="btn"><FaGlobe /> Texture</button>
+            <button onClick={() => setCurrentTexture(prev => prev === textures.night ? textures.day : textures.night)} className="btn">
+              <FaGlobe /> Texture
+            </button>
             <button onClick={() => setFollowISS((f) => !f)} className="btn">
               <FaLockOpen /> {followISS ? "Unlock" : "Follow"}
             </button>
             <button onClick={() => setShowTrajectory((s) => !s)} className="btn">
               Trail: {showTrajectory ? "On" : "Off"}
             </button>
-            <button onClick={toggleFullscreen} className="btn">
+            <button onClick={() => setIsFullscreen(!isFullscreen)} className="btn">
               {isFullscreen ? <FaCompress /> : <FaExpand />} Fullscreen
             </button>
-            {externalLinks.live && (
-              <a
-                href={externalLinks.live}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="btn bg-blue-600 hover:bg-blue-700"
-              >
-                <FaVideo /> Live Feed
-              </a>
-            )}
+            <a
+              href="https://www.nasa.gov/live"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="btn bg-blue-600 hover:bg-blue-700"
+            >
+              <FaVideo /> Live Feed
+            </a>
           </div>
         </div>
       </div>
@@ -227,30 +194,34 @@ const ISSTracker = () => {
         }`}
         style={{ height: isFullscreen ? "calc(100vh - 2rem)" : `${globeSize}px` }}
       >
-        {currentTexture && (
-          <Globe
-            ref={globeRef}
-            globeImageUrl={currentTexture}
-            width={isFullscreen ? window.innerWidth - 32 : 800}
-            height={isFullscreen ? window.innerHeight - 32 : globeSize}
-            backgroundColor="rgba(0,0,0,0.1)"
-            pointLat="lat"
-            pointLng="lng"
-            pointColor="color"
-            pointAltitude={0.05}
-            pointRadius={2}
-            arcsData={showTrajectory ? arcsData : []}
-            arcStartLat="startLat"
-            arcStartLng="startLng"
-            arcEndLat="endLat"
-            arcEndLng="endLng"
-            arcColor="color"
-            arcStroke="width"
-            arcAltitude="altitude"
-            atmosphereColor="#00d4ff"
-            atmosphereAltitude={0.15}
-          />
-        )}
+        <Globe
+          ref={globeRef}
+          globeImageUrl={currentTexture}
+          backgroundColor="rgba(0,0,0,0.1)"
+          width={isFullscreen ? window.innerWidth - 32 : 800}
+          height={isFullscreen ? window.innerHeight - 32 : globeSize}
+          pointsData={position ? [{
+            lat: position.lat,
+            lng: position.lng,
+            size: 2,
+            color: "#ff6b35"
+          }] : []}
+          pointLat="lat"
+          pointLng="lng"
+          pointColor="color"
+          pointAltitude={0.05}
+          pointRadius={2}
+          arcsData={showTrajectory ? arcsData : []}
+          arcStartLat="startLat"
+          arcStartLng="startLng"
+          arcEndLat="endLat"
+          arcEndLng="endLng"
+          arcColor="color"
+          arcStroke="width"
+          arcAltitude="altitude"
+          atmosphereColor="#00d4ff"
+          atmosphereAltitude={0.15}
+        />
       </div>
     </div>
   );
